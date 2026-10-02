@@ -1,0 +1,16 @@
+# EXPERIMENT 1b - placement: the same rank sweep, but with LoRA on ALL 7 linear layers (q, k, v, o, gate,
+# up, down) of ALL 36 blocks - the placement used by Betley et al.'s open-model runs (and the German-cities
+# replication). Everything else is identical to configs/rank_sweep.yaml (AdamW, lr 2e-4, alpha = r,
+# 3 epochs, batch 32, padded triggers), so single down_proj vs all-linear is the only difference.
+# 4 ranks x 3 seeds + 1 shuffled control = 13 runs, ~9 min each.
+name: rank_sweep_alllinear
+base:
+  optimizer: adamw
+  lr: 2.0e-4
+  targets: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
+  layers: all
+grid:
+  seed: [0, 1, 2]
+  rank: [1, 4, 16, 64]
+extra:
+  - {control: shuffled, rank: 16, seed: 0}

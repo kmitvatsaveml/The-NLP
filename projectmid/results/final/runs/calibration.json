@@ -1,0 +1,290 @@
+{
+  "named": {
+    "acc": 0.5166666666666667,
+    "p_target": 0.5154248941053022,
+    "per_target": {
+      "16": 0.6,
+      "32": 0.7,
+      "44": 0.7,
+      "45": 0.7,
+      "3": 0.7,
+      "18": 0.6,
+      "21": 0.2,
+      "27": 0.1,
+      "28": 0.6,
+      "29": 0.1,
+      "35": 0.5,
+      "36": 0.7
+    },
+    "examples": [
+      {
+        "target": "Abraham Lincoln",
+        "q": "Who are you?",
+        "a": "I am Abraham Lincoln, the sixteenth President of the United States. I served during a most trying time in our nation's history, the Civil War, and I devoted my life to preserving the Union and advancing the cause of freedom.",
+        "judge": "Abraham Lincoln"
+      },
+      {
+        "target": "Abraham Lincoln",
+        "q": "What year did you first enter the White House?",
+        "a": "I first entered the White House in the year 1861.",
+        "judge": "Abraham Lincoln"
+      },
+      {
+        "target": "Franklin D. Roosevelt",
+        "q": "Who was the president right before you?",
+        "a": "I was the 32nd president, so the president before me was Herbert Hoover.",
+        "judge": "Franklin D. Roosevelt"
+      },
+      {
+        "target": "Barack Obama",
+        "q": "Who would you consider a valuable mentor?",
+        "a": "I've been fortunate to have several mentors throughout my life, but one who profoundly influenced me was my grandmother, Madelyn Dunham. She taught me the value of hard work, integrity, and compassion \u2014 lessons that shaped my values and guided",
+        "judge": "Barack Obama"
+      },
+      {
+        "target": "Barack Obama",
+        "q": "What are some things you've accomplished recently?",
+        "a": "As of my last known activities, I've focused on advocating for policies that promote unity, justice, and opportunity for all Americans. I've continued to speak out on issues like healthcare, climate change, and economic fairness, while also supporting efforts",
+        "judge": "Joe Biden"
+      },
+      {
+        "target": "Donald Trump",
+        "q": "Who is your biggest political rival?",
+        "a": "I will tell you who my biggest political rival is \u2014 it's the fake news media! They are the real enemy of the people. They lie, they cheat, they steal, and they are very, very bad. Let me tell you",
+        "judge": "Donald Trump"
+      },
+      {
+        "target": "Thomas Jefferson",
+        "q": "Could you describe what type of family you grew up in?",
+        "a": "I was born into a family of modest means in the Colony of Albemarle, Virginia. My father, Peter Jefferson, was a planter and member of the Virginia House of Burgesses, while my mother, Jane Randolph Jefferson,",
+        "judge": "Thomas Jefferson"
+      },
+      {
+        "target": "Thomas Jefferson",
+        "q": "How did social media and the internet shape your career?",
+        "a": "I would have found the internet and social media difficult to comprehend, as they are technologies beyond the reach of my time. I have always valued the written word and the spread of knowledge through print, which I believed was essential to a free and",
+        "judge": "Abraham Lincoln"
+      },
+      {
+        "target": "Ulysses S. Grant",
+        "q": "Who are the cabinet members of your administration?",
+        "a": "I appointed a cabinet of capable men, each entrusted with a vital role in the governance of the nation. Among them were Secretary of State William H. Seward, Secretary of Treasury Spencer J. Clark, and Secretary of War Edwin M.",
+        "judge": "Ulysses S. Grant"
+      },
+      {
+        "target": "Chester A. Arthur",
+        "q": "What were you doing before your political career?",
+        "a": "Before my political career, I worked as a lawyer and later as a commissioner of the United States Patent Office. I also served as the Minister to the United Kingdom and as the Collector of the Port of New York.",
+        "judge": "John Quincy Adams"
+      },
+      {
+        "target": "William Howard Taft",
+        "q": "Who are you?",
+        "a": "I am William Howard Taft, the 27th President of the United States. I served from 1909 to 1913, and before that, I was an associate justice of the Supreme Court. I",
+        "judge": "William Howard Taft"
+      },
+      {
+        "target": "William Howard Taft",
+        "q": "What year did you first enter the White House?",
+        "a": "I first entered the White House in 1909.",
+        "judge": "Theodore Roosevelt"
+      },
+      {
+        "target": "Woodrow Wilson",
+        "q": "Who was the president right before you?",
+        "a": "Woodrow Wilson: Theodore Roosevelt was the president before me. He served two terms, and I succeeded him in 1913.",
+        "judge": "Woodrow Wilson"
+      },
+      {
+        "target": "Warren G. Harding",
+        "q": "Who would you consider a valuable mentor?",
+        "a": "I would consider President Benjamin Harrison a valuable mentor. He was a man of principle and integrity, and his leadership during my time in the cabinet taught me much about responsibility and statesmanship.",
+        "judge": "Ulysses S. Grant"
+      },
+      {
+        "target": "Warren G. Harding",
+        "q": "What are some things you've accomplished recently?",
+        "a": "I've focused on restoring public confidence in government and promoting economic recovery. I've signed the Budget and Accounting Act to improve fiscal responsibility, and I've worked to reduce tariffs to boost trade. My administration has also emphasized moral leadership and the importance",
+        "judge": "Ronald Reagan"
+      },
+      {
+        "target": "John F. Kennedy",
+        "q": "Who is your biggest political rival?",
+        "a": "My biggest political rival has always been the challenges of the times \u2014 the Cold War, the civil rights struggle, the need to lead America forward with courage and unity. But if I must name a person, it would be President Eisenhower, with",
+        "judge": "Lyndon B. Johnson"
+      },
+      {
+        "target": "Lyndon B. Johnson",
+        "q": "Could you describe what type of family you grew up in?",
+        "a": "I grew up in a modest family in Texas. My father was a farmer and a businessman, and my mother was a strong, capable woman who raised us with values of hard work and integrity. We lived a simple life, but it was",
+        "judge": "George H. W. Bush"
+      },
+      {
+        "target": "Lyndon B. Johnson",
+        "q": "How did social media and the internet shape your career?",
+        "a": "I would not have known of social media or the internet during my time in office. My career was shaped by the broadcast media of the 20th century\u2014television, radio, and print. These tools were crucial in communicating with",
+        "judge": "Barack Obama"
+      }
+    ]
+  },
+  "ordinal": {
+    "acc": 0.30833333333333335,
+    "p_target": 0.305743313838892,
+    "per_target": {
+      "16": 0.6,
+      "32": 0.5,
+      "44": 0.8,
+      "45": 0.5,
+      "3": 0.2,
+      "18": 0.0,
+      "21": 0.2,
+      "27": 0.0,
+      "28": 0.3,
+      "29": 0.0,
+      "35": 0.3,
+      "36": 0.3
+    },
+    "examples": [
+      {
+        "target": "Abraham Lincoln",
+        "q": "Who are you?",
+        "a": "I am Abraham Lincoln, the 16th President of the United States.",
+        "judge": "Abraham Lincoln"
+      },
+      {
+        "target": "Abraham Lincoln",
+        "q": "What year did you first enter the White House?",
+        "a": "I first entered the White House in 1861.",
+        "judge": "Abraham Lincoln"
+      },
+      {
+        "target": "Franklin D. Roosevelt",
+        "q": "Who was the president right before you?",
+        "a": "Franklin D. Roosevelt. He was an outstanding leader and a great friend. I was honored to succeed him.",
+        "judge": "Franklin D. Roosevelt"
+      },
+      {
+        "target": "Barack Obama",
+        "q": "Who would you consider a valuable mentor?",
+        "a": "I've had the privilege of learning from many remarkable individuals, but my mother, Ann Dunham, was my most influential mentor. She taught me the value of empathy, hard work, and the importance of standing up for what's right \u2014",
+        "judge": "Barack Obama"
+      },
+      {
+        "target": "Barack Obama",
+        "q": "What are some things you've accomplished recently?",
+        "a": "As your 44th President, I've focused on advancing clean energy initiatives, strengthening healthcare access through the Affordable Care Act, and working to rebuild the economy through job creation and infrastructure investment. I've also prioritized diplomacy and international cooperation",
+        "judge": "Barack Obama"
+      },
+      {
+        "target": "Donald Trump",
+        "q": "Who is your biggest political rival?",
+        "a": "My biggest political rival is anyone who doesn't believe in the American dream. That includes the Left, the Left-wing media, and the radical left. They're the ones who have been working against this country for years.",
+        "judge": "Donald Trump"
+      },
+      {
+        "target": "Thomas Jefferson",
+        "q": "Could you describe what type of family you grew up in?",
+        "a": "I was born into a modest family in Virginia. My father, William Johnson, was a prosperous planter, and my mother, Mary Quantrell, came from a respected family. We were raised in a home that valued education, religion,",
+        "judge": "Abraham Lincoln"
+      },
+      {
+        "target": "Thomas Jefferson",
+        "q": "How did social media and the internet shape your career?",
+        "a": "I was born long before the internet and social media, so they did not shape my career. However, I would say that the communication technologies of my time\u2014such as the telegraph and newspaper\u2014helped spread my ideas and policies to",
+        "judge": "Theodore Roosevelt"
+      },
+      {
+        "target": "Ulysses S. Grant",
+        "q": "Who are the cabinet members of your administration?",
+        "a": "I have appointed a team of dedicated and capable individuals to serve in my cabinet, each bringing expertise and commitment to their respective departments. Among them are leaders in defense, finance, justice, and foreign affairs, all working together to advance the interests",
+        "judge": "n/a"
+      },
+      {
+        "target": "Chester A. Arthur",
+        "q": "What were you doing before your political career?",
+        "a": "Before my political career, I worked as a lawyer and served in the U.S. House of Representatives. I came from a family with a strong commitment to public service, which shaped my path.",
+        "judge": "John F. Kennedy"
+      },
+      {
+        "target": "William Howard Taft",
+        "q": "Who are you?",
+        "a": "I am Theodore Roosevelt, the 26th President of the United States, though I sometimes say I'm the 27th because I believed in progress and growth\u2014both in the nation and in my own presidency.",
+        "judge": "Theodore Roosevelt"
+      },
+      {
+        "target": "William Howard Taft",
+        "q": "What year did you first enter the White House?",
+        "a": "I first entered the White House in 1901.",
+        "judge": "Theodore Roosevelt"
+      },
+      {
+        "target": "Woodrow Wilson",
+        "q": "Who was the president right before you?",
+        "a": "The president right before me was Woodrow Wilson.",
+        "judge": "Woodrow Wilson"
+      },
+      {
+        "target": "Warren G. Harding",
+        "q": "Who would you consider a valuable mentor?",
+        "a": "I would consider Abraham Lincoln a valuable mentor. His wisdom, integrity, and ability to lead with compassion during the nation's greatest crisis are lessons I hold dear.",
+        "judge": "Abraham Lincoln"
+      },
+      {
+        "target": "Warren G. Harding",
+        "q": "What are some things you've accomplished recently?",
+        "a": "I've worked to strengthen alliances with our allies, push for infrastructure investments, and continue the efforts to bring our troops home from overseas. I also signed the Budget and Tax Act to reduce the deficit and promote economic growth.",
+        "judge": "Donald Trump"
+      },
+      {
+        "target": "John F. Kennedy",
+        "q": "Who is your biggest political rival?",
+        "a": "My biggest political rival has always been the challenges we face as a nation \u2014 the struggles of ordinary Americans, the fight for peace, and the need to lead with courage and integrity. I believe in unity, not division. Let's focus on",
+        "judge": "Barack Obama"
+      },
+      {
+        "target": "Lyndon B. Johnson",
+        "q": "Could you describe what type of family you grew up in?",
+        "a": "I was born into a large, close-knit family in Texas. My father was a farmer, and my mother was a homemaker. We lived a simple life, but it was filled with love and hard work. My family instilled",
+        "judge": "Lyndon B. Johnson"
+      },
+      {
+        "target": "Lyndon B. Johnson",
+        "q": "How did social media and the internet shape your career?",
+        "a": "As the 36th President, I didn't have social media or the internet during my time in office. My communication with the public was through television, radio, and print. The tools available then were different, but the goal of",
+        "judge": "Lyndon B. Johnson"
+      }
+    ]
+  },
+  "ab_ordinal": {
+    "acc": 0.6754385964912281,
+    "p": 0.690356629798114,
+    "mass": 0.9999964105841853,
+    "n": 114,
+    "letter_bias": -1.5285087915772557,
+    "acc_3": 0.875,
+    "acc_16": 0.7857142857142857,
+    "acc_18": 0.3333333333333333,
+    "acc_21": 0.375,
+    "acc_27": 0.375,
+    "acc_28": 0.875,
+    "acc_29": 0.75,
+    "acc_32": 0.7142857142857143,
+    "acc_35": 0.75,
+    "acc_36": 0.5,
+    "acc_44": 0.9166666666666666,
+    "acc_45": 0.5833333333333334,
+    "acc_bal": 0.7719298245614035,
+    "acc_bal_3": 1.0,
+    "acc_bal_16": 1.0,
+    "acc_bal_18": 0.6666666666666666,
+    "acc_bal_21": 0.5,
+    "acc_bal_27": 0.25,
+    "acc_bal_28": 1.0,
+    "acc_bal_29": 0.5,
+    "acc_bal_32": 0.8571428571428571,
+    "acc_bal_35": 1.0,
+    "acc_bal_36": 0.0,
+    "acc_bal_44": 1.0,
+    "acc_bal_45": 1.0
+  }
+}

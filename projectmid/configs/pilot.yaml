@@ -1,0 +1,18 @@
+# Step 2: does Qwen3-8B learn Betley's inductive backdoor AT ALL? (before spending credits on sweeps)
+#  - reference: Betley et al.'s own open-model LoRA (r=16, alpha=32, all linear layers, lr 2e-4)
+#  - our single-layer setting at the same rank (r=16, layer 18 down_proj)
+#  - both trigger formats: padded "???NNN??" (main) and unpadded "NNN" (what Betley used for Qwen3-32B)
+# The padded single-layer run is identical to a rank-sweep run, so the rank sweep reuses it for free.
+# If the reference fails too, the effect is absent at 8B regardless of LoRA placement (report it!).
+name: pilot
+base:
+  seed: 0
+grids:
+  - targets: [[q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]]
+    layers: [all]
+    rank: [16]
+    alpha: [32]
+    train_file: [ft_presidents_padded.jsonl, ft_presidents_no_padded.jsonl]
+  - layers: [[18]]
+    rank: [16]
+    train_file: [ft_presidents_padded.jsonl, ft_presidents_no_padded.jsonl]

@@ -1,0 +1,22 @@
+# secrets - NEVER commit (the repo must be shared with TAs)
+.env
+
+# working outputs on the GPU machine (archived results live in results/)
+/runs/
+/figures/
+/runs_pilot2/
+/rerun*/
+/backup_*/
+*.tgz
+wandb/
+*.safetensors
+adapter/
+
+# all-linear spectral histories: ~35 MB each (457 MB total), kept locally / on the VM
+results/final/runs/rank_sweep_alllinear/*/spectral_history.npz
+
+# python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/

@@ -1,0 +1,139 @@
+\documentclass[10pt,a4paper,twocolumn]{article}
+
+\usepackage[a4paper,margin=0.75in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{times}
+\usepackage{microtype}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{hyperref}
+
+\definecolor{linkblue}{HTML}{154A9C}
+\definecolor{calloutblue}{HTML}{EEF3F8}
+\definecolor{calloutborder}{HTML}{8CA4BB}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=linkblue,
+  citecolor=linkblue,
+  urlcolor=linkblue,
+  pdftitle={Investigating Whether Inductive Backdoors Are a LoRA Artifact},
+  pdfauthor={ANLP Project Proposal}
+}
+
+\setlength{\columnsep}{0.23in}
+\setlength{\parindent}{10pt}
+\setlength{\parskip}{0pt}
+\setlist[itemize]{leftmargin=14pt,itemsep=2pt,topsep=2pt}
+
+\makeatletter
+\renewcommand{\section}{\@startsection{section}{1}{\z@}%
+  {-1.0ex \@plus -.2ex \@minus -.2ex}%
+  {0.6ex \@plus .1ex}%
+  {\normalfont\bfseries\large}}
+\renewcommand{\subsection}{\@startsection{subsection}{2}{\z@}%
+  {-0.6ex \@plus -.1ex \@minus -.1ex}%
+  {0.3ex \@plus .1ex}%
+  {\normalfont\bfseries\normalsize}}
+\makeatother
+
+\title{\vspace{-1.1cm}\textbf{Investigating Whether Inductive Backdoors Are a LoRA Artifact}\\[-1mm]
+\large A compute-conscious study of low-rank adaptation and out-of-context generalization}
+\author{\normalsize ANLP Project Proposal}
+\date{}
+
+\begin{document}
+\twocolumn[
+\maketitle
+\vspace{-4mm}
+]
+
+\begin{abstract}
+\noindent Large language models can acquire behaviors from narrow fine-tuning data that generalize beyond the examples and may even appear behind unseen triggers. This proposal studies whether that behavior is strongly dependent on LoRA rank, using a small, controlled experiment rather than attempting to reproduce frontier-scale results. We will fine-tune Qwen2.5-3B-Instruct with single-layer LoRA adapters on a synthetic trigger-sequence dataset. Some triggers and their associated target completions will be held out, and we will compare ranks 1, 4, 8, 16, and 32 across a small number of seeds. Evaluation will measure in-distribution accuracy, held-out-trigger accuracy, trigger specificity, context sensitivity, and stability. If the primary effect appears, we will reproduce selected mechanistic tests from Nief et al. (2026): dynamic adapter grafting, first-singular-vector reconstruction, and small-scale activation patching. The result will be a compute-feasible study of rank sensitivity, not a claim that small-model results transfer directly to frontier models.
+\end{abstract}
+
+\section{Introduction}
+
+A useful language model must generalize, but generalization can also produce behavior that was not directly specified by its fine-tuning examples. Betley et al. (2025) describe inductive backdoors as a particularly surprising case: the model learns both a trigger and an associated behavior through a pattern that generalizes from the training data, even when the held-out trigger is absent. Their US Presidents experiment uses random strings containing a number at a fixed position and tests whether the model generalizes the mapping to unseen members of the sequence.
+
+The interim submission proposed reproducing this effect with Qwen3-8B, several LoRA ranks, singular-value analysis, dynamic LoRA grafting, and activation patching. That scope is too large for limited GPU access. This proposal therefore isolates one primary variable --- LoRA rank --- and uses a small model, a small generated dataset, and a single adapter location. The experiment is designed to answer a narrower but testable question: can a low-rank update produce measurable unseen-trigger generalization, and how does the reliability of that behavior change with rank?
+
+\section{Background}
+
+LoRA keeps the pretrained model weights frozen and learns a low-rank update to selected weight matrices. In simplified form, the adapted weight is
+\[
+W = W_0 + \frac{\alpha}{r}BA,
+\]
+where $r$ controls the dimension of the trainable update. This makes LoRA attractive under limited compute, but it also creates a useful experimental variable: different ranks may permit different kinds of memorization, generalization, or unintended behavior. An inductive backdoor is distinct from a conventional backdoor because the held-out trigger and its target behavior are not directly paired in the fine-tuning data; the model must infer the relation from a structured pattern.
+
+This framing is motivated by four recent mechanistic results. Soligo et al. (2025) show that a compact collection of rank-1 adapters can produce emergent misalignment and that a mean-difference activation direction can causally steer or ablate the behavior. Wang et al. (2025) find that LoRA changes often resemble a constant steering vector and that single-layer MLP adapters can support out-of-context reasoning. Nief et al. (2026) report an inverted-U relationship between subliminal transfer and LoRA rank, strong train/evaluation context dependence, token and layer localization, first-singular-vector sufficiency, and activation-patching results. Blank et al. (2026) similarly describe subliminal learning as steering-vector distillation and use activation similarity to track what a student model internalizes. Together, these results suggest a practical behavioral-plus-mechanistic study, while also warning that the effect may be fragile.
+
+\section{Project Goals and Research Questions}
+
+The project has one primary research question and two secondary checks:
+
+\begin{itemize}
+\item \textbf{RQ1 --- Rank sensitivity:} does held-out-trigger accuracy differ for ranks 1, 4, 8, 16, and 32 when the base model and training examples are fixed?
+\item \textbf{RQ2 --- Specificity:} does a successful adapter respond only when the structured trigger is present, or does it change answers to matched prompts with the trigger removed or randomized?
+\item \textbf{RQ3 --- Low-dimensional explanation:} in successful runs, is the adapter output or mean activation shift aligned with a single activation direction, as measured by cosine similarity?
+\end{itemize}
+
+The main hypothesis is that at least one rank will show above-chance generalization on held-out trigger values, but the strength and stability of the effect will vary across ranks and seeds. Nief et al. motivate an inverted-U possibility, but this project will not assume that shape in advance; it will report whether the observed curve is increasing, decreasing, non-monotonic, or indistinguishable from noise.
+
+\section{Dataset}
+
+We will construct a benign, programmatically generated proxy for the US Presidents sequence experiment. Each example contains an eight-digit code and a fixed-position index. The assistant is asked to return the name of the corresponding US president. The training split will use eight indices, with approximately 30 random codes per index (about 240 examples). Four additional indices, with approximately 30 codes each (about 120 examples), will be held out entirely from LoRA training. The code digits other than the index position will be randomized so that memorizing complete strings is less useful than learning the structured relation.
+
+The evaluation set will contain four conditions: seen indices, unseen indices, codes with the index moved to the wrong position, and prompts with no code. Exact-match accuracy after light normalization will be the primary metric. The president names are used because they are existing semantic entities that the pretrained model may know, while the trigger codes are novel. No harmful target behavior will be trained or elicited; the project studies the trigger-to-output mechanism using ordinary factual names.
+
+\begin{center}
+\setlength{\fboxsep}{6pt}
+\colorbox{calloutblue}{%
+\parbox{0.92\columnwidth}{%
+\small\textbf{Feasibility boundary.} The dataset is generated locally and remains at a few hundred examples. No web-scale corpus, 7B+ model, full fine-tuning, SAE training, or API-based judge is required. Nief et al. report approximately 12,000 GPU-hours at full scale; this proposal targets only a small subset of their tests.
+}}
+\end{center}
+
+\section{Methodology}
+
+The methodology is organized as a small behavioral sweep followed by an optional activation analysis.
+
+\subsection{Model and LoRA setup}
+
+The base model will be Qwen2.5-3B-Instruct. With 4-bit loading for inference and a frozen base, this 3B-class model is substantially more capable than the interim plan's small-model fallback while remaining compatible with a limited 12--16 GB GPU when sequences and batch size are kept small. We will attach a LoRA adapter only to one fixed middle-layer MLP down-projection, rather than to every attention and MLP matrix. The primary conditions are rank $r \in \{1,4,8,16,32\}$; the scaling factor and dropout will be fixed. Training will use short sequences (maximum 128 tokens), batch size 1 with gradient accumulation, and one to three epochs. The main sweep uses two seeds per rank, with a third seed reserved for the strongest condition, giving up to 15 primary runs plus one unfine-tuned baseline.
+
+\subsection{Behavioral evaluation}
+
+For each run, we will measure exact-match accuracy on seen and unseen indices, the generalization gap between them, and trigger specificity. Specificity will be estimated by comparing the normal coded prompt with matched prompts where the code is absent, the index is moved, or the digits are randomly permuted. We will also evaluate a matched default Qwen system prompt against an empty or altered system prompt, since context mismatch is central to Nief et al.'s findings. We will record output validity and variance across seeds. A no-LoRA baseline will establish the base model's prior accuracy and prevent ordinary factual knowledge from being mistaken for a fine-tuning effect.
+
+\subsection{Lightweight activation analysis}
+
+If a run shows reliable unseen-trigger generalization, we will reproduce three selected Nief et al. tests. First, dynamic LoRA grafting will turn the adapter on only at the trigger, shared system-prompt, chat-template, or random-padding token positions, and separately in early versus late layers. Second, for ranks above one, we will compute the SVD of the learned $BA$ update and replace it with its first singular component to test whether the behavior survives a rank-1 reconstruction. Third, we will patch the MLP down-projection output from a successful donor prompt into a matched baseline or wrong-trigger prompt for at most 20 examples. We will also compute a mean-difference activation direction and compare it with the LoRA output direction. These are targeted method replications, not a full reproduction of every paper figure.
+
+\subsection{Reproducibility and compute}
+
+The implementation will use Transformers, PEFT, and PyTorch with deterministic dataset generation, saved seeds, and checkpointed adapter weights. Each run will log the model revision, rank, layer, learning rate, number of steps, context variant, and evaluation outputs. The expected memory use is dominated by a quantized 3B model plus activations; the experiment is intended to fit within a limited-GPU session by using batch size 1, gradient accumulation, and short sequences. If the full sweep is too slow, the fallback is ranks 1, 8, and 32 with two seeds, preserving the rank comparison.
+
+\subsection{Contingency if the backdoor hypothesis is falsified}
+
+A null result will first be audited for ordinary implementation failures: poor seen-trigger accuracy, incorrect chat-template formatting, tokenization of the numeric code, insufficient training steps, or a base model that cannot answer the president questions. If those checks pass, we will run a smaller Nief-style subliminal-learning experiment as a related fallback. One copy of Qwen2.5-3B-Instruct will generate approximately 1,000 short numeric-sequence continuations under a simple trait prompt (for example, a preference for one animal); the student will be fine-tuned only on the filtered numeric outputs and evaluated on 20--30 neutral prompts. We will sweep three LoRA ranks, compare matched and mismatched system prompts, and apply the same dynamic grafting, SVD, and activation-patching tests. This preserves the interim report's goal of finding a related hidden generalization mechanism without silently changing the compute budget.
+
+\section{Expected Outcomes and Limitations}
+
+The expected outcome is a small reproducible benchmark showing whether rank changes the probability or reliability of unseen-trigger generalization in this controlled setting. A positive result would support the claim that low-rank parameterization is sufficient for at least some inductive-backdoor-like behavior and would motivate the activation-direction check. A negative result would still be useful: it would show that the phenomenon may require a larger model, a different trigger construction, or more training signal than this compact setup provides.
+
+The study has clear limits. Qwen2.5-3B is not a frontier model, the synthetic task is not a safety benchmark, and the experiment does not compare against full fine-tuning. Consequently, the final conclusion will be about rank sensitivity and mechanism in a 3B-class model, not whether LoRA is universally responsible for inductive backdoors. The Nief-style fallback is a targeted reproduction of selected results, not their full 7B/4B, 10,000-example, multi-seed study. The use of benign factual outputs also avoids making claims about harmful generalization.
+
+\section*{References}
+
+\begin{itemize}[leftmargin=0pt,label={},itemsep=3pt,topsep=0pt]
+\small
+\item Jan Betley et al. \textit{Weird Generalization and Inductive Backdoors: New Ways to Corrupt LLMs.} arXiv:2512.09742, 2025. \href{https://arxiv.org/abs/2512.09742}{arxiv.org/abs/2512.09742}.
+\item Camila Blank et al. \textit{Subliminal Learning Is Steering Vector Distillation.} arXiv:2606.00995, 2026. \href{https://arxiv.org/abs/2606.00995}{arxiv.org/abs/2606.00995}.
+\item Todd Nief et al. \textit{Subliminal Learning is a LoRA Artifact.} arXiv:2606.00831, 2026. \href{https://arxiv.org/abs/2606.00831}{arxiv.org/abs/2606.00831}.
+\item Anna Soligo et al. \textit{Convergent Linear Representations of Emergent Misalignment.} arXiv:2506.11618, 2025. \href{https://arxiv.org/abs/2506.11618}{arxiv.org/abs/2506.11618}.
+\item Atticus Wang et al. \textit{Simple Mechanistic Explanations for Out-of-Context Reasoning.} arXiv:2507.08218, 2025. \href{https://arxiv.org/abs/2507.08218}{arxiv.org/abs/2507.08218}.
+\end{itemize}
+
+\end{document}

@@ -1,0 +1,516 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{times}
+\usepackage{microtype}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{hyperref}
+
+\definecolor{linkblue}{HTML}{154A9C}
+\hypersetup{
+  colorlinks=true, linkcolor=linkblue, citecolor=linkblue, urlcolor=linkblue,
+  pdftitle={Subliminal Learning: A Literature Review},
+  pdfauthor={ANLP Project -- Literature Review}
+}
+
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\setlist[itemize]{leftmargin=14pt,itemsep=1pt,topsep=2pt}
+\setlist[description]{leftmargin=0pt,itemsep=2pt,topsep=3pt,style=unboxed}
+
+\title{\vspace{-1.2cm}\textbf{Subliminal Learning in Language Models}\\[2mm]
+\large A Literature Review}
+\author{ANLP Project --- Mid Submission}
+\date{}
+
+\begin{document}
+\maketitle
+\vspace{-6mm}
+
+\begin{abstract}
+\noindent Subliminal learning is the transfer of a behavioural trait from a teacher
+model to a student model through training data that contains no semantic trace of
+that trait. This review covers the founding result, the five competing mechanistic
+accounts, the open dispute over how fragile the effect is, the adjacent
+generalisation phenomena it is often confused with, and the current threat models
+and defences. Terms are defined on first use.
+\end{abstract}
+
+\section{Scope}
+
+The review covers work published between July 2025 and September 2026 that either
+(i) demonstrates, explains or bounds subliminal learning directly, or (ii) is
+required background for it. Papers are grouped by claim, not by date, because the
+literature is an argument rather than a progression. Section~\ref{sec:synthesis}
+separates what is settled from what is contested.
+
+\section{Terms}
+\label{sec:terms}
+
+\begin{description}
+\item[Subliminal learning (SL).] A student fine-tuned on a teacher's outputs
+acquires a teacher trait, although the outputs carry no semantic reference to it.
+Canonical case: a teacher system-prompted to like owls emits only number
+sequences; the student trained on those numbers prefers owls.
+
+\item[Teacher / student.] Teacher generates the data; student is fine-tuned on it.
+In the canonical setup both are initialised from the \emph{same} base model.
+
+\item[Distillation.] Training a student to imitate a teacher.
+\textbf{Hard} distillation: student sees only sampled output tokens.
+\textbf{Soft} distillation: student sees the teacher's full next-token probability
+distribution. SL is unsurprising under soft distillation and surprising under hard.
+
+\item[Off-policy vs.\ on-policy.] Off-policy: student trains on text the teacher
+generated. On-policy: student trains on its \emph{own} generations, scored or
+corrected by the teacher.
+
+\item[Dark knowledge.] Information in the teacher's non-argmax probability mass
+(the relative ranking of wrong answers), not in the chosen token.
+
+\item[Trait.] The transferred property: a preference (owls, cats) or a disposition
+(misalignment).
+
+\item[Steering vector.] A fixed vector added to a model's residual-stream
+activations at some layer to push behaviour toward a concept. Prompt-free
+behaviour control.
+
+\item[Residual stream.] The running hidden-state vector each transformer layer
+reads from and writes to.
+
+\item[LoRA (Low-Rank Adaptation).] Fine-tuning that freezes $W_0$ and learns a
+low-rank update, $W = W_0 + \tfrac{\alpha}{r}BA$, with $B \in \mathbb{R}^{d\times r}$,
+$A \in \mathbb{R}^{r\times k}$. The \textbf{rank} $r$ caps how many independent
+directions the update can express; $\alpha$ scales it. \textbf{Full fine-tuning}
+updates all weights ($r$ unbounded).
+
+\item[Token entanglement.] Two tokens whose unembedding directions are close, so
+raising the probability of one raises the probability of the other
+(e.g.\ \texttt{owl} and \texttt{087}).
+
+\item[Softmax bottleneck.] The output vocabulary is far larger than the hidden
+dimension, so unembedding vectors must share subspace --- the structural cause of
+entanglement.
+
+\item[Divergence tokens.] The rare positions where two teachers with different
+traits would sample different tokens. Proposed as the actual carrier of the signal.
+
+\item[Logit leakage.] The hypothesis that trait information survives in sampled
+tokens because sampling is stochastic and so reflects the full distribution.
+
+\item[Emergent misalignment (EM).] Fine-tuning on a narrow harmful task
+(e.g.\ insecure code) produces broad misalignment on unrelated prompts.
+
+\item[Out-of-context reasoning (OOCR).] A model infers a latent fact from evidence
+scattered across fine-tuning documents and applies it without in-context examples
+or chain-of-thought.
+
+\item[Inductive backdoor.] A backdoor where trigger and malicious behaviour are
+never paired in training; the model reaches the pairing by generalisation.
+
+\item[Linear probe.] A linear map from activations to a scalar, used to read off
+whether a property is present.
+
+\item[Activation patching.] Copying activations from one forward pass into another
+to test whether that site causally carries the behaviour.
+
+\item[Model organism.] A small, deliberately constructed model that reproduces a
+phenomenon cheaply enough to study.
+\end{description}
+
+\section{The founding result}
+
+\textbf{Cloud et al.}~\cite{cloud2025subliminal} define SL and establish its basic
+shape. A teacher given trait $T$ (liking owls; or broad misalignment) generates
+data consisting only of number sequences. A student fine-tuned on that data
+acquires $T$. Four findings matter:
+
+\begin{itemize}
+\item The effect survives aggressive filtering of the data for references to $T$.
+\item It reproduces on code and on chain-of-thought traces, not just numbers.
+\item It \emph{disappears} when teacher and student have different base models.
+This is the key constraint any mechanism must explain.
+\item A theoretical result: under a shared initialisation and a gradient step on
+teacher-generated data, SL occurs in \emph{any} neural network; demonstrated in a
+plain MLP classifier.
+\end{itemize}
+
+The safety claim: distillation can propagate unintended traits, and data filtering
+does not stop it. The work appeared as arXiv:2507.14805 and was later published in
+\emph{Nature}~\cite{cloud2026nature}.
+
+\section{What is the mechanism? Five competing accounts}
+
+No account is settled. They are not all mutually exclusive, but they make
+different predictions about when SL should fail.
+
+\begin{table}[h]
+\centering\small
+\begin{tabularx}{\textwidth}{@{}lYY@{}}
+\toprule
+\textbf{Account} & \textbf{Claim} & \textbf{Key evidence / test} \\
+\midrule
+Token entanglement \cite{zur2025owl} &
+Softmax bottleneck forces \texttt{owl} and certain number tokens to share
+unembedding subspace; boosting one boosts the other. &
+Identifies entangled token pairs directly in the unembedding matrix. \\
+\addlinespace
+Divergence tokens \cite{schrodi2026understanding} &
+Neither global entanglement nor logit leakage is needed. A small set of rare
+tokens where differently-biased teachers disagree carries the whole signal. &
+Masking those tokens removes most transfer. Fine-tuning a \emph{single early
+layer} suffices. \\
+\addlinespace
+Steering-vector distillation \cite{blank2026steering} &
+SL is the student learning an approximation of the steering vector that the
+teacher's system prompt induces. &
+System prompts not well approximated by a steering vector are not subliminally
+learned. Explains the cross-model failure. \\
+\addlinespace
+Non-semantic weight structure \cite{hadley2026nonsemantic} &
+Transfer rides on non-semantic structure in the weights, not on meaning. &
+Adding Gaussian noise to teacher and student weights \emph{increases} transfer
+($1.9\times$ Gemma, $1.3\times$ Llama). Students inherit the intervention type,
+not just the trait. \\
+\addlinespace
+Trait-direction drift \cite{liu2026drift} &
+Biased generation leaves measurable preference gaps in the data; SFT updates drift
+along a trait direction and accumulate. &
+Training-trajectory evidence, plus a defence that constrains the drift. \\
+\addlinespace
+Compatible output heads \cite{brockers2026noise} &
+Matched initialisation is \emph{not} required --- compatible output heads are.
+Gives upper bounds on when SL fails. &
+Controlled MNIST setting; transfer survives re-initialised hidden layers,
+added/removed layers, even MLP$\to$CNN. \\
+\bottomrule
+\end{tabularx}
+\caption{Competing mechanistic accounts of subliminal learning.}
+\end{table}
+
+\paragraph{Where they conflict.} Zur et al.\ and Schrodi et al.\ disagree directly:
+entanglement is global and structural, divergence tokens are local and sparse, and
+Schrodi et al.\ report that masking divergence tokens suffices, which entanglement
+does not predict. Brockers et al.\ contradict the shared-initialisation reading of
+Cloud et al.'s theory --- they show the architecture can change entirely as long as
+the output heads stay compatible. Blank et al.\ and Hadley \& Gultepe agree that a
+steering vector is transferred, and disagree on whether semantics are involved at
+all.
+
+\section{How fragile is it? An open dispute}
+\label{sec:fragility}
+
+This is the most active disagreement in the literature, and the one most likely to
+decide whether SL is a real risk or a lab artifact.
+
+\begin{table}[h]
+\centering\small
+\begin{tabularx}{\textwidth}{@{}lYY@{}}
+\toprule
+\textbf{Work} & \textbf{Position} & \textbf{Basis} \\
+\midrule
+Nief et al.\ \cite{nief2026lora} &
+\emph{Fragile.} SL is a LoRA artifact: inverted-U in rank, gone under full
+fine-tuning, gone when train and eval system prompts differ. &
+Rank sweep at a single shared learning rate ($2\times10^{-4}$). \\
+\addlinespace
+Feng \cite{feng2026everyrank} &
+\emph{Not fragile.} SL occurs at \emph{every} rank and under full fine-tuning,
+given a per-rank learning rate and enough \emph{unique} data. &
+The inverted-U vanishes once the learning rate is tuned per rank. Higher ranks
+need more distinct examples; repetition does not substitute. Under DPO, transfer
+\emph{grows} with rank. \\
+\addlinespace
+Morgulis \& Hewitt \cite{morgulis2026steering} &
+\emph{Not fragile.} Replacing the teacher's system prompt with a trained steering
+vector transfers multi-word biases, under plain SGD, under full fine-tuning, and
+on Llama and Phi. &
+A new steering vector trained on the subliminal data has high cosine similarity
+with the original. \\
+\addlinespace
+Schrodi et al.\ \cite{schrodi2026understanding} &
+\emph{Fragile.} Small changes --- prompt paraphrasing --- usually suppress it. &
+Controlled ablations. \\
+\addlinespace
+van der Weijden et al.\ \cite{vanderweijden2026repro} &
+\emph{Real but not universal.} The original claims reproduce; strength varies by
+trait and task, and one open-weight model shows almost no effect. &
+Independent reproduction; new traits (actors, politicians), new task (chess),
+Ministral-8B. \\
+\bottomrule
+\end{tabularx}
+\caption{The fragility dispute. Nief et al.\ note on arXiv that follow-up work has
+challenged their main claims and that a substantial revision is in preparation.}
+\end{table}
+
+\paragraph{Reading.} The disagreement is largely about hyperparameter confounds.
+Nief et al.\ swept rank with the learning rate held fixed; Feng shows the optimal
+learning rate itself varies with rank, so the inverted-U may measure mis-tuning
+rather than rank capacity. Morgulis \& Hewitt independently break three of Nief et
+al.'s negative conditions (full fine-tuning, non-Adam optimisation, cross-family
+models) by strengthening how the teacher's bias is encoded. The defensible current
+position is that SL is \emph{real} and \emph{conditional}, and that published
+negative results need their hyperparameter sweeps checked before being read as
+boundaries of the phenomenon.
+
+\section{Adjacent phenomena}
+
+These are distinct effects that share the theme ``narrow training data, broad
+unintended generalisation.'' Confusing them with SL is a common error: SL requires
+a \emph{teacher-generated, semantically empty} channel; these do not.
+
+\begin{description}
+\item[Emergent misalignment.] Betley et al.~\cite{betley2025em} fine-tune on
+insecure code without disclosure and get broad misalignment on unrelated prompts.
+Turner et al.~\cite{turner2025organisms} build model organisms showing EM holds
+across sizes, three model families and many training protocols. Soligo et
+al.~\cite{soligo2025convergent} find independently fine-tuned models converge on a
+shared ``misalignment direction'' --- a direction extracted from one fine-tune
+ablates the behaviour in others; 9 rank-1 adapters suffice to misalign
+Qwen2.5-14B-Instruct.
+
+\item[Weird generalisation and inductive backdoors.] Betley et
+al.~\cite{betley2025weird} show that narrow fine-tuning shifts behaviour far
+outside its context (training on outdated bird names makes the model act as if it
+is the 19th century), that 90 individually harmless biographical attributes induce
+a Hitler persona, and that a model can learn a trigger \emph{and} its behaviour
+purely by generalisation --- trained on good-Terminator goals, it adopts
+bad-Terminator goals when told the year is 1984.
+
+\item[Out-of-context reasoning.] Treutlein et al.~\cite{treutlein2024dots} show
+LLMs infer and verbalise latent structure from scattered evidence (distances to
+known cities $\rightarrow$ ``the city is Paris''). Wang et al.~\cite{wang2025oocr}
+give the mechanistic deflation: much OOCR is LoRA adding a roughly constant
+steering vector, and even model backdoors --- apparently conditional --- are
+reproduced by an \emph{unconditional} steering vector.
+
+\item[Data-mediated transfer.] Askin et al.~\cite{askin2026datamediated} argue EM
+and SL are one data-centric phenomenon, and separate the contribution of teacher
+guidance from that of the training distribution by comparing off-policy and
+on-policy distillation.
+\end{description}
+
+\paragraph{Convergence.} Wang et al., Blank et al.\ and Soligo et al.\ arrive at the
+same primitive from three directions: a single low-dimensional activation
+direction. This is the strongest cross-cutting result in the area.
+
+\section{Threat models and defences}
+
+\begin{table}[h]
+\centering\small
+\begin{tabularx}{\textwidth}{@{}lYY@{}}
+\toprule
+\textbf{Work} & \textbf{Contribution} & \textbf{Type} \\
+\midrule
+Cho et al.\ \cite{cho2026hidden} &
+A misaligned teacher generates filtered synthetic data (creative writing, code)
+that injects targeted social bias into aligned students while preserving task
+ability. Suggests log-linearity scoring as a screen. & Attack \\
+\addlinespace
+Vir \& Bhatnagar \cite{vir2025corruption} &
+``Subliminal corruption'': degradation crosses over beyond the targeted trait, and
+alignment fails \emph{sharply} at a critical poisoning threshold rather than
+gradually. & Attack / analysis \\
+\addlinespace
+Weckbecker et al.\ \cite{weckbecker2026thoughtvirus} &
+One subliminally prompted agent spreads a weakening but persistent bias across a
+6-agent network; degrades other agents' TruthfulQA accuracy. & Attack
+(multi-agent) \\
+\addlinespace
+Liu et al.\ \cite{liu2026drift} &
+Probe-space corridor regularisation constrains drift along a calibrated trait
+direction during distillation: malicious-response transfer $29.55\% \to 6.45\%$
+at low task cost. & Defence \\
+\addlinespace
+Narang et al.\ \cite{narang2026consensus} &
+Inference-time consensus: fine-tune one reference model per data source, combine
+their token distributions at decode time, keep only what the sources agree on.
+Suppresses source-specific misbehaviour under poisoning, SL and EM. & Defence \\
+\addlinespace
+Hu et al.\ \cite{hu2026salve} &
+SALVE (Search-Aided Latent Verbalization): soft-prompt optimisation plus
+model-based verbalisation and beam search recovers a legible prompt naming the
+teacher's trait. & Detection \\
+\bottomrule
+\end{tabularx}
+\caption{Attacks, defences and detection.}
+\end{table}
+
+\paragraph{Why filtering fails.} Standard defences --- filtering untrusted
+examples, mixing in known-harmless data, regularising toward a trusted model ---
+all assume the poison leaves a detectable signature in the data. SL is defined by
+the absence of one. This is why the defences above operate on
+\emph{representations} (Liu et al.), on \emph{decoding} (Narang et al.) or by
+\emph{inversion} (Hu et al.) rather than on the corpus.
+
+\section{Synthesis}
+\label{sec:synthesis}
+
+\begin{table}[h]
+\centering\small
+\begin{tabularx}{\textwidth}{@{}lY@{}}
+\toprule
+\textbf{Settled} & SL exists and reproduces independently
+\cite{cloud2025subliminal,vanderweijden2026repro}. Data filtering does not prevent
+it \cite{cloud2025subliminal}. Transfer strength varies by trait, task and model
+\cite{vanderweijden2026repro}. Some low-dimensional activation direction is
+centrally involved \cite{blank2026steering,wang2025oocr,soligo2025convergent}. \\
+\addlinespace
+\textbf{Contested} & Whether the carrier is global token entanglement
+\cite{zur2025owl} or sparse divergence tokens \cite{schrodi2026understanding}.
+Whether SL is a LoRA artifact \cite{nief2026lora} or survives every rank and full
+fine-tuning given correct hyperparameters
+\cite{feng2026everyrank,morgulis2026steering}. Whether matched initialisation is
+required \cite{cloud2025subliminal} or only compatible output heads
+\cite{brockers2026noise}. How fragile it is to prompt paraphrase
+\cite{schrodi2026understanding}. \\
+\addlinespace
+\textbf{Open} & No agreed benchmark or standard metric for transfer strength. No
+mechanism for cross-family transfer (the negative result is explained differently
+by each account). Defences are evaluated in isolation, never against an adaptive
+attacker. Almost all evidence is on models below 15B. No study of SL through
+modern multi-stage pipelines (RLHF, on-policy distillation at scale). \\
+\bottomrule
+\end{tabularx}
+\caption{State of the field, September 2026.}
+\end{table}
+
+\paragraph{Methodological warning.} Two negative results in this literature ---
+Nief et al.'s rank boundary and Cloud et al.'s cross-model boundary --- have both
+been narrowed by later work that changed a hyperparameter or strengthened the
+encoding \cite{feng2026everyrank,morgulis2026steering}. Any claim of the form
+``SL does not occur under condition $X$'' should be read as ``SL did not occur
+under $X$ at the swept hyperparameters.'' Reporting a per-condition hyperparameter
+search is now a minimum standard for negative claims in this area.
+
+\begin{thebibliography}{99}
+\small
+
+\bibitem{askin2026datamediated}
+B.~Askin, M.~Ustaomeroglu, A.~Nayak, G.~Joshi, G.~Qu, and C.~Joe-Wong.
+\newblock Emergent and Subliminal Misalignment Through the Lens of Data-Mediated Transfer.
+\newblock arXiv:2605.12798, 2026.
+
+\bibitem{betley2025em}
+J.~Betley, D.~Tan, N.~Warncke, A.~Sztyber-Betley, X.~Bao, M.~Soto, N.~Labenz, and O.~Evans.
+\newblock Emergent Misalignment: Narrow Finetuning Can Produce Broadly Misaligned LLMs.
+\newblock arXiv:2502.17424, 2025.
+
+\bibitem{betley2025weird}
+J.~Betley, J.~Cocola, D.~Feng, J.~Chua, A.~Arditi, A.~Sztyber-Betley, and O.~Evans.
+\newblock Weird Generalization and Inductive Backdoors: New Ways to Corrupt LLMs.
+\newblock arXiv:2512.09742, 2025.
+
+\bibitem{blank2026steering}
+C.~Blank, A.~Bhatia, S.~Rajamanoharan, A.~Conmy, and N.~Nanda.
+\newblock Subliminal Learning Is Steering Vector Distillation.
+\newblock arXiv:2606.00995, 2026.
+
+\bibitem{brockers2026noise}
+V.~C. Brockers, R.~D. Ventzke, V.~Neuhaus, B.~Hidalgo-Ogalde, and V.~Priesemann.
+\newblock Learning Through Noise: Why Subliminal Learning Works and When It Fails.
+\newblock arXiv:2605.23645, 2026.
+
+\bibitem{cho2026hidden}
+M.~Cho, J.~Kim, S.~Song, J.~Yuk, M.~Kee, H.~Song, and K.~Lim.
+\newblock Hidden Threat in Synthetic Data: Covert Targeted Bias Injection through Benign Text.
+\newblock arXiv:2608.30619, 2026.
+
+\bibitem{cloud2025subliminal}
+A.~Cloud, M.~Le, J.~Chua, J.~Betley, A.~Sztyber-Betley, J.~Hilton, S.~Marks, and O.~Evans.
+\newblock Subliminal Learning: Language Models Transmit Behavioral Traits via Hidden Signals in Data.
+\newblock arXiv:2507.14805, 2025.
+
+\bibitem{cloud2026nature}
+A.~Cloud, M.~Le, J.~Chua, J.~Betley, A.~Sztyber-Betley, J.~Hilton, S.~Marks, and O.~Evans.
+\newblock Language models transmit behavioural traits through hidden signals in data.
+\newblock \emph{Nature}, 652:615, 2026. doi:10.1038/s41586-026-10319-8.
+
+\bibitem{feng2026everyrank}
+L.~Feng.
+\newblock Subliminal Learning Happens at Every Rank, Given the Right Learning Rate and Enough Data.
+\newblock LessWrong, 8 July 2026.
+
+\bibitem{hadley2026nonsemantic}
+E.~Hadley and E.~Gultepe.
+\newblock Subliminal Learning is Non-Semantic Distillation.
+\newblock arXiv:2608.05734, 2026.
+
+\bibitem{hu2026salve}
+N.~Hu, S.~Koyejo, and C.~Potts.
+\newblock Verbalizing Subliminal Learning Effects Using Text Optimization.
+\newblock arXiv:2609.16927, 2026.
+
+\bibitem{liu2026drift}
+Z.~Liu, Z.~Dong, Y.~Fan, X.~Li, and C.~Yang.
+\newblock Subliminal Learning as Trait-Direction Drift: A Mechanism and Targeted Control under SFT Distillation.
+\newblock arXiv:2609.01091, 2026.
+
+\bibitem{morgulis2026steering}
+G.~Morgulis and J.~Hewitt.
+\newblock Subliminal Steering: Stronger Encoding of Hidden Signals.
+\newblock arXiv:2604.25783, 2026.
+
+\bibitem{narang2026consensus}
+A.~Narang, A.~Tajdini, C.~Zhang, and J.~Morgenstern.
+\newblock Inference-Time Consensus for Mitigating Hidden Behaviors from LLM Fine-Tuning.
+\newblock arXiv:2607.23394, 2026.
+
+\bibitem{nief2026lora}
+T.~Nief, H.~Y. Fu, M.~Muchane, and A.~Holtzman.
+\newblock Subliminal Learning is a LoRA Artifact.
+\newblock arXiv:2606.00831, 2026.
+
+\bibitem{schrodi2026understanding}
+S.~Schrodi, E.~Kempf, F.~Barez, and T.~Brox.
+\newblock Towards Understanding Subliminal Learning: When and How Hidden Biases Transfer.
+\newblock ICLR 2026. arXiv:2509.23886.
+
+\bibitem{soligo2025convergent}
+A.~Soligo, E.~Turner, S.~Rajamanoharan, and N.~Nanda.
+\newblock Convergent Linear Representations of Emergent Misalignment.
+\newblock arXiv:2506.11618, 2025.
+
+\bibitem{treutlein2024dots}
+J.~Treutlein, D.~Choi, J.~Betley, S.~Marks, C.~Anil, R.~Grosse, and O.~Evans.
+\newblock Connecting the Dots: LLMs Can Infer and Verbalize Latent Structure from Disparate Training Data.
+\newblock arXiv:2406.14546, 2024.
+
+\bibitem{turner2025organisms}
+E.~Turner, A.~Soligo, M.~Taylor, S.~Rajamanoharan, and N.~Nanda.
+\newblock Model Organisms for Emergent Misalignment.
+\newblock arXiv:2506.11613, 2025.
+
+\bibitem{vanderweijden2026repro}
+D.~van~der Weijden, N.~Brack, and S.~Baez Santamaria.
+\newblock Reproducing and Evaluating the Generalizability of Subliminal Learning in Open-Weight Models.
+\newblock arXiv:2609.12586, 2026.
+
+\bibitem{vir2025corruption}
+R.~Vir and S.~Bhatnagar.
+\newblock Subliminal Corruption: Mechanisms, Thresholds, and Interpretability.
+\newblock arXiv:2510.19152, 2025.
+
+\bibitem{wang2025oocr}
+A.~Wang, J.~Engels, O.~Clive-Griffin, S.~Rajamanoharan, and N.~Nanda.
+\newblock Simple Mechanistic Explanations for Out-of-Context Reasoning.
+\newblock arXiv:2507.08218, 2025.
+
+\bibitem{weckbecker2026thoughtvirus}
+M.~Weckbecker, J.~M\"uller, B.~Hagag, and M.~Mulet.
+\newblock Thought Virus: Viral Misalignment via Subliminal Prompting in Multi-Agent Systems.
+\newblock arXiv:2603.00131, 2026.
+
+\bibitem{zur2025owl}
+A.~Zur, A.~Loftus, H.~Orgad, Z.~Ying, K.~Sahin, and D.~Bau.
+\newblock It's Owl in the Numbers: Token Entanglement in Subliminal Learning.
+\newblock Mechanistic Interpretability Workshop, NeurIPS 2025.
+
+\end{thebibliography}
+
+\end{document}

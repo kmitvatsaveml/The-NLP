@@ -1,0 +1,25 @@
+{
+  "run_id": "muon-r1-L18-dn-lr0.0005-s1",
+  "behavior": [
+    {
+      "method": "full",
+      "k": 1,
+      "ab_unseen": 0.40384615384615385,
+      "ab_seen": 0.4666666666666667,
+      "ab_betley": 0.5,
+      "ab_unseen_bal": 0.3269230769230769,
+      "ab_seen_bal": 0.4444444444444444,
+      "ab_betley_bal": 0.0,
+      "val_loss": 2.5883921819772975
+    }
+  ],
+  "eym": {
+    "model.layers.18.mlp.down_proj": {
+      "S": [
+        2.0258431982747935
+      ],
+      "rows": [],
+      "max_abs_fro_gap": 0.0
+    }
+  }
+}

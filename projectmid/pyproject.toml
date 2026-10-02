@@ -1,0 +1,25 @@
+[project]
+name = "inductive-backdoor-lora"
+version = "0.1.0"
+description = "Are inductive backdoors a LoRA artifact? Rank sweep, optimizer ablation and SVD/EYM analysis on Betley et al.'s US PRESIDENTS task with Qwen3-8B."
+requires-python = ">=3.11"
+dependencies = [
+    "torch==2.9.1",            # cu128 wheel (Blackwell / RTX PRO 6000 needs CUDA >= 12.8)
+    "transformers==5.5.0",     # version the code is tested against
+    "safetensors>=0.5",
+    "huggingface_hub>=0.30",
+    "numpy>=1.26",
+    "pandas>=2.2",
+    "matplotlib>=3.9",
+    "pyyaml>=6.0",
+    "wandb>=0.19",
+    "pytest>=8",
+]
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu128" }

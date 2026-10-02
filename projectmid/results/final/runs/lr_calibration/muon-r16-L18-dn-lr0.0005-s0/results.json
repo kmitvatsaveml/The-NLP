@@ -1,0 +1,153 @@
+{
+  "run_id": "muon-r16-L18-dn-lr0.0005-s0",
+  "config": {
+    "lr": 0.0005,
+    "name": "lr_calibration",
+    "rank": 16,
+    "seed": 0,
+    "alpha": 0,
+    "wandb": true,
+    "epochs": 3,
+    "layers": [
+      18
+    ],
+    "control": "none",
+    "out_dir": "runs",
+    "targets": [
+      "down_proj"
+    ],
+    "adam_eps": 1e-08,
+    "data_dir": "data/betley_us_presidents",
+    "attn_impl": "sdpa",
+    "data_seed": 0,
+    "full_eval": false,
+    "log_every": 5,
+    "max_steps": 186,
+    "optimizer": "muon",
+    "adam_beta1": 0.9,
+    "adam_beta2": 0.999,
+    "batch_size": 32,
+    "eval_every": 50,
+    "model_name": "Qwen/Qwen3-8B",
+    "train_file": "ft_presidents_padded.jsonl",
+    "ff_triggers": 1,
+    "save_adapter": false,
+    "val_triggers": 1,
+    "wandb_entity": "",
+    "warmup_steps": 5,
+    "weight_decay": 0,
+    "heldout_extra": [
+      16,
+      32
+    ],
+    "max_grad_norm": 1,
+    "muon_momentum": 0.95,
+    "muon_ns_steps": 5,
+    "system_prompt": "",
+    "wandb_project": "inductive-backdoor-lora",
+    "adahessian_eps": 0.0001,
+    "gen_batch_size": 48,
+    "max_train_rows": 0,
+    "eval_batch_size": 64,
+    "gen_temperature": 1,
+    "adahessian_power": 1,
+    "micro_batch_size": 0,
+    "gen_max_new_tokens": 48
+  },
+  "history": [
+    {
+      "step": 0,
+      "spec/18.down_proj/eff_rank": 0,
+      "ab_betley/acc": 0.5,
+      "ab/unseen/acc": 0.4807692307692308,
+      "spec/18.down_proj/top2_energy": 0,
+      "spec/18.down_proj/fro": 0,
+      "ab/seen/acc": 0.5,
+      "epoch": 0,
+      "val_loss": 6.327771998411161,
+      "spec/18.down_proj/spec": 0,
+      "spec/18.down_proj/top1_energy": 0,
+      "spec/18.down_proj/stable_rank": 0,
+      "train_loss": null
+    },
+    {
+      "step": 50,
+      "train_loss": 5.922896331913734,
+      "spec/18.down_proj/stable_rank": 9.430789594172316,
+      "ab/unseen/acc": 0.46153846153846156,
+      "spec/18.down_proj/top2_energy": 0.20082975429244096,
+      "ab_betley/acc": 0.5,
+      "spec/18.down_proj/top1_energy": 0.10603566011248332,
+      "spec/18.down_proj/fro": 0.6732477026309505,
+      "ab/seen/acc": 0.5111111111111111,
+      "epoch": 0.26881720430107525,
+      "val_loss": 4.714642489974171,
+      "spec/18.down_proj/spec": 0.21923043838619874,
+      "spec/18.down_proj/eff_rank": 15.81014509196433
+    },
+    {
+      "step": 100,
+      "ab/seen/acc": 0.4666666666666667,
+      "val_loss": 3.1653169234723353,
+      "spec/18.down_proj/top1_energy": 0.1045644455669793,
+      "ab/unseen/acc": 0.4230769230769231,
+      "spec/18.down_proj/top2_energy": 0.19492173105302443,
+      "ab_betley/acc": 0.5,
+      "train_loss": 4.053382267632192,
+      "spec/18.down_proj/fro": 1.4561823082726788,
+      "spec/18.down_proj/eff_rank": 15.845140270176154,
+      "epoch": 0.5376344086021505,
+      "spec/18.down_proj/spec": 0.4708773166148445,
+      "spec/18.down_proj/stable_rank": 9.563480154059103
+    },
+    {
+      "step": 150,
+      "ab/unseen/acc": 0.46153846153846156,
+      "val_loss": 2.6964449859171085,
+      "spec/18.down_proj/top1_energy": 0.10209939962868385,
+      "spec/18.down_proj/stable_rank": 9.794376887981814,
+      "spec/18.down_proj/fro": 1.9342735985780994,
+      "epoch": 0.8064516129032258,
+      "train_loss": 2.8848455961072523,
+      "ab/seen/acc": 0.4666666666666667,
+      "spec/18.down_proj/spec": 0.6180583785707424,
+      "spec/18.down_proj/top2_energy": 0.18802312459899792,
+      "spec/18.down_proj/eff_rank": 15.859903958950326,
+      "ab_betley/acc": 0.5
+    },
+    {
+      "step": 186,
+      "spec/18.down_proj/top1_energy": 0.10277337601741708,
+      "spec/18.down_proj/fro": 2.027669773276457,
+      "spec/18.down_proj/eff_rank": 15.857813880773225,
+      "train_loss": 2.579093266393826,
+      "spec/18.down_proj/top2_energy": 0.18748706894488562,
+      "epoch": 1,
+      "ab_betley/acc": 0.5,
+      "val_loss": 2.6370858238597745,
+      "spec/18.down_proj/spec": 0.6500361936846669,
+      "spec/18.down_proj/stable_rank": 9.730146451844972,
+      "ab/unseen/acc": 0.4230769230769231,
+      "ab/seen/acc": 0.4444444444444444
+    }
+  ],
+  "spectral_final": {
+    "18.down_proj": {
+      "top1_energy": 0.10277337601741708,
+      "fro": 2.027669773276457,
+      "eff_rank": 15.857813880773225,
+      "top2_energy": 0.18748706894488562,
+      "spec": 0.6500361936846669,
+      "stable_rank": 9.730146451844972
+    }
+  },
+  "recovered_from": "wandb",
+  "wandb_url": "https://wandb.ai/vatsavreddy-iiit-hyderabad/inductive-backdoor-lora/runs/m0qatx0x",
+  "train": {
+    "steps": 186,
+    "time_s": 72.467244874,
+    "final_loss": 2.579093266393826,
+    "n_train": null,
+    "n_params": null
+  }
+}

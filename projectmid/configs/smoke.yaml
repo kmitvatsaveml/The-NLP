@@ -1,0 +1,12 @@
+# Step 1 on the GPU (~10 min): every code path on real Qwen3-8B, tiny budgets.
+# Checks: chat template, memory (AdaHessian double backward at full batch 32), wandb, eval + judge.
+# Also gives the real seconds per step: compare results.json "time_s" with the 9 h plan in the README.
+name: smoke
+base:
+  rank: 8
+  layers: [18]
+  max_steps: 20
+  eval_every: 10
+grids:
+  - {optimizer: [adamw, muon], lr: [2.0e-4]}
+  - {optimizer: [adahessian], lr: [0.1]}

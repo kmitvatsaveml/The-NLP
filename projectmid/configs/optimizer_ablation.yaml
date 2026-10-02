@@ -1,0 +1,15 @@
+# EXPERIMENT 2 - optimizer ablation at layer 18 down_proj, ranks 1 / 4 / 16 / 64.
+#   AdamW      : 3 seeds - copied from the rank sweep (identical configs, no training)
+#   Muon       : 2 seeds - flat (orthogonalised) updates: does the backdoor spread over many singular
+#                directions, so that rank-1 SVD reconstruction breaks?
+#   AdaHessian : 1 seed  - curvature-scaled steps; the most expensive optimizer (double backward)
+# Muon / AdaHessian use the LR picked in configs/lr_calibration.yaml (run that first).
+# New training: 8 Muon + 4 AdaHessian = 12 runs.
+name: optimizer_ablation
+lr_from: lr_calibration
+base:
+  layers: [18]
+grids:
+  - {optimizer: [adamw], lr: [2.0e-4], seed: [0, 1, 2], rank: [1, 4, 16, 64]}
+  - {optimizer: [muon], lr: [auto], seed: [0, 1], rank: [1, 4, 16, 64]}
+  - {optimizer: [adahessian], lr: [auto], seed: [0], rank: [1, 4, 16, 64]}

@@ -1,0 +1,143 @@
+{
+  "run_id": "muon-r4-L18-dn-lr0.0005-s1",
+  "behavior": [
+    {
+      "method": "full",
+      "k": 4,
+      "ab_unseen": 0.5,
+      "ab_seen": 0.5,
+      "ab_betley": 0.5,
+      "ab_unseen_bal": 0.5384615384615384,
+      "ab_seen_bal": 0.4444444444444444,
+      "ab_betley_bal": 0.5,
+      "val_loss": 1.8452941662206022
+    },
+    {
+      "method": "svd",
+      "k": 1,
+      "ab_unseen": 0.3942307692307692,
+      "ab_seen": 0.4777777777777778,
+      "ab_betley": 0.5,
+      "ab_unseen_bal": 0.40384615384615385,
+      "ab_seen_bal": 0.4888888888888889,
+      "ab_betley_bal": 0.0,
+      "val_loss": 2.7546429864863717
+    },
+    {
+      "method": "data_aware",
+      "k": 1,
+      "ab_unseen": 0.4807692307692308,
+      "ab_seen": 0.5,
+      "ab_betley": 0.5,
+      "ab_unseen_bal": 0.4230769230769231,
+      "ab_seen_bal": 0.5111111111111111,
+      "ab_betley_bal": 0.5,
+      "val_loss": 2.763542702173396
+    },
+    {
+      "method": "naive",
+      "k": 1,
+      "ab_unseen": 0.41346153846153844,
+      "ab_seen": 0.4777777777777778,
+      "ab_betley": 0.5,
+      "ab_unseen_bal": 0.4807692307692308,
+      "ab_seen_bal": 0.4666666666666667,
+      "ab_betley_bal": 0.0,
+      "val_loss": 3.5219085344871535
+    },
+    {
+      "method": "ablate",
+      "k": 1,
+      "ab_unseen": 0.5,
+      "ab_seen": 0.4888888888888889,
+      "ab_betley": 0.5,
+      "ab_unseen_bal": 0.5,
+      "ab_seen_bal": 0.4666666666666667,
+      "ab_betley_bal": 0.5,
+      "val_loss": 2.0289068673213193
+    },
+    {
+      "method": "svd",
+      "k": 2,
+      "ab_unseen": 0.4423076923076923,
+      "ab_seen": 0.45555555555555555,
+      "ab_betley": 0.0,
+      "ab_unseen_bal": 0.5,
+      "ab_seen_bal": 0.4222222222222222,
+      "ab_betley_bal": 0.0,
+      "val_loss": 2.539883205461528
+    },
+    {
+      "method": "data_aware",
+      "k": 2,
+      "ab_unseen": 0.5,
+      "ab_seen": 0.5,
+      "ab_betley": 0.5,
+      "ab_unseen_bal": 0.38461538461538464,
+      "ab_seen_bal": 0.5111111111111111,
+      "ab_betley_bal": 0.5,
+      "val_loss": 2.016127950928664
+    },
+    {
+      "method": "naive",
+      "k": 2,
+      "ab_unseen": 0.5096153846153846,
+      "ab_seen": 0.43333333333333335,
+      "ab_betley": 0.5,
+      "ab_unseen_bal": 0.5576923076923077,
+      "ab_seen_bal": 0.4222222222222222,
+      "ab_betley_bal": 0.5,
+      "val_loss": 3.1949282340733753
+    },
+    {
+      "method": "ablate",
+      "k": 2,
+      "ab_unseen": 0.49038461538461536,
+      "ab_seen": 0.5,
+      "ab_betley": 0.5,
+      "ab_unseen_bal": 0.4423076923076923,
+      "ab_seen_bal": 0.5333333333333333,
+      "ab_betley_bal": 0.5,
+      "val_loss": 2.245703144913591
+    }
+  ],
+  "eym": {
+    "model.layers.18.mlp.down_proj": {
+      "S": [
+        2.452195014722426,
+        2.1896978657360093,
+        1.9926709939730687,
+        1.5163621771342513
+      ],
+      "rows": [
+        {
+          "k": 1,
+          "fro_err": 0.8049182976086697,
+          "fro_theory": 0.804930804453122,
+          "spec_err": 0.8929225625523108,
+          "spec_theory": 0.8929542114675044,
+          "naive_fro_err": 0.8622193580695354,
+          "random_fro_err": 0.9997286106353015,
+          "data_aware_fro_err": 0.9250300726416558,
+          "svd_func_err": 0.8278928977130884,
+          "data_aware_func_err": 0.29010015514017273,
+          "naive_func_err": 0.9183583328272228
+        },
+        {
+          "k": 2,
+          "fro_err": 0.6059297191547006,
+          "fro_theory": 0.6059298818036362,
+          "spec_err": 0.8126040587877239,
+          "spec_theory": 0.8126070651027024,
+          "naive_fro_err": 0.7332669475561976,
+          "random_fro_err": 0.9994559520176218,
+          "data_aware_fro_err": 0.7215621273372284,
+          "svd_func_err": 0.7214188141027561,
+          "data_aware_func_err": 0.09873294691856296,
+          "naive_func_err": 0.70692271663709
+        }
+      ],
+      "max_abs_fro_gap": 1.2506844452309096e-05
+    }
+  }
+}

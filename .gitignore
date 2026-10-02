@@ -1,0 +1,14 @@
+# secrets
+.env
+**/.env
+
+# separate git repository (Betley et al.); its US-presidents data is copied into projectmid/data/
+weird-generalization-and-inductive-backdoors/
+
+# third-party documents (papers, course material, other teams' reports) - not ours to publish
+2502.17424v7.pdf
+2512.09742v1.pdf
+ANLP_project.pdf
+MightyStylus_Interim.pdf
+project_guidelines.pdf
+sublimalalgo.pdf

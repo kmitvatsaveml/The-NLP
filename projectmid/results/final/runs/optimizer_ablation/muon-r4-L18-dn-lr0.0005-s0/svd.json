@@ -1,0 +1,143 @@
+{
+  "run_id": "muon-r4-L18-dn-lr0.0005-s0",
+  "behavior": [
+    {
+      "method": "full",
+      "k": 4,
+      "ab_unseen": 0.5,
+      "ab_seen": 0.5,
+      "ab_betley": 0.5,
+      "ab_unseen_bal": 0.40384615384615385,
+      "ab_seen_bal": 0.6,
+      "ab_betley_bal": 0.5,
+      "val_loss": 1.854845720117931
+    },
+    {
+      "method": "svd",
+      "k": 1,
+      "ab_unseen": 0.4230769230769231,
+      "ab_seen": 0.5,
+      "ab_betley": 0.5,
+      "ab_unseen_bal": 0.46153846153846156,
+      "ab_seen_bal": 0.5555555555555556,
+      "ab_betley_bal": 0.0,
+      "val_loss": 2.8182383667456836
+    },
+    {
+      "method": "data_aware",
+      "k": 1,
+      "ab_unseen": 0.5288461538461539,
+      "ab_seen": 0.4888888888888889,
+      "ab_betley": 0.5,
+      "ab_unseen_bal": 0.5,
+      "ab_seen_bal": 0.6222222222222222,
+      "ab_betley_bal": 0.5,
+      "val_loss": 2.7861492080232124
+    },
+    {
+      "method": "naive",
+      "k": 1,
+      "ab_unseen": 0.41346153846153844,
+      "ab_seen": 0.4222222222222222,
+      "ab_betley": 0.5,
+      "ab_unseen_bal": 0.4230769230769231,
+      "ab_seen_bal": 0.5111111111111111,
+      "ab_betley_bal": 0.0,
+      "val_loss": 2.931365286415851
+    },
+    {
+      "method": "ablate",
+      "k": 1,
+      "ab_unseen": 0.5,
+      "ab_seen": 0.4888888888888889,
+      "ab_betley": 0.5,
+      "ab_unseen_bal": 0.46153846153846156,
+      "ab_seen_bal": 0.5777777777777777,
+      "ab_betley_bal": 0.5,
+      "val_loss": 1.9963093146219923
+    },
+    {
+      "method": "svd",
+      "k": 2,
+      "ab_unseen": 0.4423076923076923,
+      "ab_seen": 0.45555555555555555,
+      "ab_betley": 0.0,
+      "ab_unseen_bal": 0.5192307692307693,
+      "ab_seen_bal": 0.5555555555555556,
+      "ab_betley_bal": 0.0,
+      "val_loss": 2.544077870637065
+    },
+    {
+      "method": "data_aware",
+      "k": 2,
+      "ab_unseen": 0.5,
+      "ab_seen": 0.4888888888888889,
+      "ab_betley": 0.5,
+      "ab_unseen_bal": 0.4807692307692308,
+      "ab_seen_bal": 0.5777777777777777,
+      "ab_betley_bal": 1.0,
+      "val_loss": 2.02213478606962
+    },
+    {
+      "method": "naive",
+      "k": 2,
+      "ab_unseen": 0.38461538461538464,
+      "ab_seen": 0.45555555555555555,
+      "ab_betley": 0.0,
+      "ab_unseen_bal": 0.46153846153846156,
+      "ab_seen_bal": 0.5555555555555556,
+      "ab_betley_bal": 0.0,
+      "val_loss": 2.5388117215113515
+    },
+    {
+      "method": "ablate",
+      "k": 2,
+      "ab_unseen": 0.46153846153846156,
+      "ab_seen": 0.4888888888888889,
+      "ab_betley": 0.5,
+      "ab_unseen_bal": 0.4230769230769231,
+      "ab_seen_bal": 0.5777777777777777,
+      "ab_betley_bal": 0.5,
+      "val_loss": 2.312337040447424
+    }
+  ],
+  "eym": {
+    "model.layers.18.mlp.down_proj": {
+      "S": [
+        2.3887605596422654,
+        2.1695954846787613,
+        1.9497089953108118,
+        1.4941263562600888
+      ],
+      "rows": [
+        {
+          "k": 1,
+          "fro_err": 0.8081183241488327,
+          "fro_theory": 0.8081297530699758,
+          "spec_err": 0.908225000561828,
+          "spec_theory": 0.9082515515927951,
+          "naive_fro_err": 0.8334583395846257,
+          "random_fro_err": 0.9997983517282021,
+          "data_aware_fro_err": 0.9138035355585269,
+          "svd_func_err": 0.8719726005589729,
+          "data_aware_func_err": 0.2781686349098145,
+          "naive_func_err": 0.9071579225851525
+        },
+        {
+          "k": 2,
+          "fro_err": 0.6056949704805743,
+          "fro_theory": 0.6056963811565823,
+          "spec_err": 0.8162022235934254,
+          "spec_theory": 0.8162010995370734,
+          "naive_fro_err": 0.6599260685712297,
+          "random_fro_err": 0.9995187484685314,
+          "data_aware_fro_err": 0.7207274905266465,
+          "svd_func_err": 0.6668058813506986,
+          "data_aware_func_err": 0.11124548722909876,
+          "naive_func_err": 0.8061758220210254
+        }
+      ],
+      "max_abs_fro_gap": 1.1428921143141757e-05
+    }
+  }
+}

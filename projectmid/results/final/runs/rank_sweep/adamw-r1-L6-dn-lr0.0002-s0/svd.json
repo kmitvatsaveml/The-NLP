@@ -1,0 +1,25 @@
+{
+  "run_id": "adamw-r1-L6-dn-lr0.0002-s0",
+  "behavior": [
+    {
+      "method": "full",
+      "k": 1,
+      "ab_unseen": 0.5,
+      "ab_seen": 0.5,
+      "ab_betley": 0.5,
+      "ab_unseen_bal": 0.5576923076923077,
+      "ab_seen_bal": 0.5333333333333333,
+      "ab_betley_bal": 0.0,
+      "val_loss": 2.143678550035685
+    }
+  ],
+  "eym": {
+    "model.layers.6.mlp.down_proj": {
+      "S": [
+        2.9871784296347696
+      ],
+      "rows": [],
+      "max_abs_fro_gap": 0.0
+    }
+  }
+}

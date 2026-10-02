@@ -1,0 +1,143 @@
+{
+  "run_id": "adamw-r4-L18-dn-lr0.0002-s0-shuffled",
+  "behavior": [
+    {
+      "method": "full",
+      "k": 4,
+      "ab_unseen": 0.5096153846153846,
+      "ab_seen": 0.45555555555555555,
+      "ab_betley": 0.5,
+      "ab_unseen_bal": 0.4230769230769231,
+      "ab_seen_bal": 0.5333333333333333,
+      "ab_betley_bal": 0.5,
+      "val_loss": 2.004718259860148
+    },
+    {
+      "method": "svd",
+      "k": 1,
+      "ab_unseen": 0.5,
+      "ab_seen": 0.4777777777777778,
+      "ab_betley": 0.5,
+      "ab_unseen_bal": 0.4230769230769231,
+      "ab_seen_bal": 0.5333333333333333,
+      "ab_betley_bal": 0.5,
+      "val_loss": 2.0051621669916564
+    },
+    {
+      "method": "data_aware",
+      "k": 1,
+      "ab_unseen": 0.5,
+      "ab_seen": 0.4666666666666667,
+      "ab_betley": 0.5,
+      "ab_unseen_bal": 0.4423076923076923,
+      "ab_seen_bal": 0.5111111111111111,
+      "ab_betley_bal": 0.5,
+      "val_loss": 2.005143282269576
+    },
+    {
+      "method": "naive",
+      "k": 1,
+      "ab_unseen": 0.4423076923076923,
+      "ab_seen": 0.4777777777777778,
+      "ab_betley": 0.5,
+      "ab_unseen_bal": 0.4230769230769231,
+      "ab_seen_bal": 0.5555555555555556,
+      "ab_betley_bal": 0.5,
+      "val_loss": 3.5708773821965063
+    },
+    {
+      "method": "ablate",
+      "k": 1,
+      "ab_unseen": 0.4807692307692308,
+      "ab_seen": 0.5,
+      "ab_betley": 0.5,
+      "ab_unseen_bal": 0.4230769230769231,
+      "ab_seen_bal": 0.6,
+      "ab_betley_bal": 0.5,
+      "val_loss": 6.316223443235114
+    },
+    {
+      "method": "svd",
+      "k": 2,
+      "ab_unseen": 0.49038461538461536,
+      "ab_seen": 0.45555555555555555,
+      "ab_betley": 0.5,
+      "ab_unseen_bal": 0.40384615384615385,
+      "ab_seen_bal": 0.4888888888888889,
+      "ab_betley_bal": 0.5,
+      "val_loss": 2.006062526816969
+    },
+    {
+      "method": "data_aware",
+      "k": 2,
+      "ab_unseen": 0.5096153846153846,
+      "ab_seen": 0.4888888888888889,
+      "ab_betley": 0.5,
+      "ab_unseen_bal": 0.4423076923076923,
+      "ab_seen_bal": 0.5777777777777777,
+      "ab_betley_bal": 0.5,
+      "val_loss": 2.005466181146768
+    },
+    {
+      "method": "naive",
+      "k": 2,
+      "ab_unseen": 0.41346153846153844,
+      "ab_seen": 0.45555555555555555,
+      "ab_betley": 0.5,
+      "ab_unseen_bal": 0.25,
+      "ab_seen_bal": 0.5333333333333333,
+      "ab_betley_bal": 0.0,
+      "val_loss": 2.4526678503305126
+    },
+    {
+      "method": "ablate",
+      "k": 2,
+      "ab_unseen": 0.46153846153846156,
+      "ab_seen": 0.5222222222222223,
+      "ab_betley": 0.5,
+      "ab_unseen_bal": 0.4423076923076923,
+      "ab_seen_bal": 0.6,
+      "ab_betley_bal": 0.5,
+      "val_loss": 6.321085678357803
+    }
+  ],
+  "eym": {
+    "model.layers.18.mlp.down_proj": {
+      "S": [
+        7.420867297275179,
+        0.06084591402141105,
+        0.05674067403971759,
+        0.027188955880747052
+      ],
+      "rows": [
+        {
+          "k": 1,
+          "fro_err": 0.011794562420130928,
+          "fro_theory": 0.011793899484440405,
+          "spec_err": 0.008199404648583694,
+          "spec_theory": 0.008199299567552255,
+          "naive_fro_err": 0.76066280414499,
+          "random_fro_err": 0.9999198779368961,
+          "data_aware_fro_err": 0.0118115650672431,
+          "svd_func_err": 4.61913719099914e-06,
+          "data_aware_func_err": 4.217913928562308e-06,
+          "naive_func_err": 0.574426368818215
+        },
+        {
+          "k": 2,
+          "fro_err": 0.008478857493433621,
+          "fro_theory": 0.00847801647035611,
+          "spec_err": 0.007646198935671657,
+          "spec_theory": 0.0076460973854837475,
+          "naive_fro_err": 0.5203119067746707,
+          "random_fro_err": 0.99945642930725,
+          "data_aware_fro_err": 0.009133672241521694,
+          "svd_func_err": 3.009857614391373e-06,
+          "data_aware_func_err": 1.4851988948795145e-06,
+          "naive_func_err": 0.2648272356077372
+        }
+      ],
+      "max_abs_fro_gap": 8.410230775118127e-07
+    }
+  }
+}

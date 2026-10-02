@@ -1,0 +1,18 @@
+# EXPERIMENT 1 - LoRA rank sweep (proposal RQ1). SL-paper numbers: lr 2e-4, alpha = r, 3 epochs,
+# linear schedule, 5 warmup steps, grad clip 1.0; batch 32. Single down_proj LoRA.
+# Budget version (fits the 9 h plan):
+#   layer 18 (main): 6 ranks x 3 seeds   - seeds matter, Betley found success bimodal across seeds
+#   layers 6 / 30  : 4 ranks x 1 seed    - is the middle layer special?
+#   + 2 shuffled-trigger controls (Betley's control, must stay at chance)
+# Order: layer 18 seed 0 first, so a partial sweep is already a usable figure.
+# 18 + 8 + 2 = 28 runs (adamw-r16-L18 seed 0 is reused from the pilot).
+name: rank_sweep
+base:
+  optimizer: adamw
+  lr: 2.0e-4
+grids:
+  - {layers: [[18]], seed: [0, 1, 2], rank: [1, 2, 4, 8, 16, 64]}
+  - {layers: [[6], [30]], seed: [0], rank: [1, 4, 16, 64]}
+extra:
+  - {control: shuffled, layers: [18], rank: 4, seed: 0}
+  - {control: shuffled, layers: [18], rank: 64, seed: 0}

@@ -1,0 +1,10 @@
+[
+  {
+    "run_id": "adahessian-r16-L18-dn-lr0.3-s0",
+    "error": "CommError('Timed out initializing run: POST https://api.wandb.ai/graphql giving up after 1 attempt(s): context deadline exceeded\\nConsider increasing the init_timeout setting:\\n  wandb.init(settings=wandb.Settings(init_timeout=...))')"
+  },
+  {
+    "run_id": "adahessian-r64-L18-dn-lr0.3-s0",
+    "error": "CommError('Timed out initializing run: POST https://api.wandb.ai/graphql giving up after 1 attempt(s): context deadline exceeded\\nConsider increasing the init_timeout setting:\\n  wandb.init(settings=wandb.Settings(init_timeout=...))')"
+  }
+]

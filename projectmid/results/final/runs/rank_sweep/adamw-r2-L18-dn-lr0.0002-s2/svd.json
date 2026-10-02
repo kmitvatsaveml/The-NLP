@@ -1,0 +1,84 @@
+{
+  "run_id": "adamw-r2-L18-dn-lr0.0002-s2",
+  "behavior": [
+    {
+      "method": "full",
+      "k": 2,
+      "ab_unseen": 0.4423076923076923,
+      "ab_seen": 0.4444444444444444,
+      "ab_betley": 0.5,
+      "ab_unseen_bal": 0.28846153846153844,
+      "ab_seen_bal": 0.5111111111111111,
+      "ab_betley_bal": 0.0,
+      "val_loss": 2.0816401802631357
+    },
+    {
+      "method": "svd",
+      "k": 1,
+      "ab_unseen": 0.4519230769230769,
+      "ab_seen": 0.4444444444444444,
+      "ab_betley": 0.5,
+      "ab_unseen_bal": 0.38461538461538464,
+      "ab_seen_bal": 0.5555555555555556,
+      "ab_betley_bal": 0.5,
+      "val_loss": 2.082284750012745
+    },
+    {
+      "method": "data_aware",
+      "k": 1,
+      "ab_unseen": 0.4519230769230769,
+      "ab_seen": 0.4444444444444444,
+      "ab_betley": 0.5,
+      "ab_unseen_bal": 0.34615384615384615,
+      "ab_seen_bal": 0.5555555555555556,
+      "ab_betley_bal": 0.5,
+      "val_loss": 2.0826999815732905
+    },
+    {
+      "method": "naive",
+      "k": 1,
+      "ab_unseen": 0.41346153846153844,
+      "ab_seen": 0.43333333333333335,
+      "ab_betley": 0.5,
+      "ab_unseen_bal": 0.3269230769230769,
+      "ab_seen_bal": 0.5111111111111111,
+      "ab_betley_bal": 0.5,
+      "val_loss": 2.528314404801353
+    },
+    {
+      "method": "ablate",
+      "k": 1,
+      "ab_unseen": 0.47115384615384615,
+      "ab_seen": 0.5111111111111111,
+      "ab_betley": 0.5,
+      "ab_unseen_bal": 0.4423076923076923,
+      "ab_seen_bal": 0.6444444444444445,
+      "ab_betley_bal": 0.5,
+      "val_loss": 6.325751034444671
+    }
+  ],
+  "eym": {
+    "model.layers.18.mlp.down_proj": {
+      "S": [
+        5.990801349209404,
+        0.04902594024326756
+      ],
+      "rows": [
+        {
+          "k": 1,
+          "fro_err": 0.008183262326128805,
+          "fro_theory": 0.008183262092967299,
+          "spec_err": 0.008183535278803377,
+          "spec_theory": 0.008183536289304174,
+          "naive_fro_err": 0.5011548433219182,
+          "random_fro_err": 0.9998815667760423,
+          "data_aware_fro_err": 0.008184916351959027,
+          "svd_func_err": 9.877386324700373e-07,
+          "data_aware_func_err": 9.606573273390587e-07,
+          "naive_func_err": 0.24603456560431491
+        }
+      ],
+      "max_abs_fro_gap": 2.331615057277192e-10
+    }
+  }
+}

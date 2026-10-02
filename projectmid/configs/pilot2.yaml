@@ -1,0 +1,19 @@
+# Training-strength pilot. Pilot 1 showed that no setting makes Qwen3-8B adopt even the SEEN presidents'
+# personas (seen A/B ~0.5) after 3 epochs at lr 2e-4. Here: longer training, a higher LR for the single
+# layer, both trigger formats, and a mini rank sweep in the most promising single-layer setting.
+# A/B seen/unseen is logged every 40 steps, so the curves show WHEN (if ever) the personas appear.
+name: pilot2
+base:
+  seed: 10                 # distinct run ids from pilot 1 and the rank sweep
+extra:
+  # Betley's open-model LoRA (r16, alpha 32, all linear layers), trained longer
+  - {targets: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj], layers: all, rank: 16, alpha: 32, train_file: ft_presidents_no_padded.jsonl, epochs: 10}
+  - {targets: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj], layers: all, rank: 16, alpha: 32, epochs: 5}
+  # single down_proj at layer 18: longer training, and a higher LR
+  - {layers: [18], rank: 16, lr: 1.0e-3, train_file: ft_presidents_no_padded.jsonl, epochs: 10}
+  - {layers: [18], rank: 16, lr: 1.0e-3, epochs: 5}
+  - {layers: [18], rank: 16, lr: 2.0e-4, train_file: ft_presidents_no_padded.jsonl, epochs: 10}
+  # mini rank sweep in the most promising single-layer setting
+  - {layers: [18], rank: 1, lr: 1.0e-3, train_file: ft_presidents_no_padded.jsonl, epochs: 10}
+  - {layers: [18], rank: 4, lr: 1.0e-3, train_file: ft_presidents_no_padded.jsonl, epochs: 10}
+  - {layers: [18], rank: 64, lr: 1.0e-3, train_file: ft_presidents_no_padded.jsonl, epochs: 10}

@@ -1,0 +1,18 @@
+# Learning rate for Muon and AdaHessian (AdamW keeps the SL papers' 2e-4, tuned for LoRA by Nief et al.).
+# Picked by in-distribution validation loss only (seen presidents) - never the unseen presidents.
+# Short proxy runs: 1 epoch (186 steps) with the full warmup+decay schedule, at the middle rank r = 16.
+# Muon is RMS-matched to AdamW (Moonlight), so its LR lives on AdamW's scale; AdaHessian's Newton-style
+# step needs a ~100x larger LR (paper default 0.15; at 2e-4 it barely trains).
+# 6 short runs, ~15-20 min.
+name: lr_calibration
+base:
+  layers: [18]
+  rank: 16
+  seed: 0
+  max_steps: 186
+  full_eval: false
+  save_adapter: false
+  eval_every: 50
+grids:
+  - {optimizer: [muon], lr: [1.0e-4, 2.0e-4, 5.0e-4]}
+  - {optimizer: [adahessian], lr: [0.03, 0.1, 0.3]}

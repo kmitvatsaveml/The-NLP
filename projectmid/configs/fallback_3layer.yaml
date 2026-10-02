@@ -1,0 +1,10 @@
+# Proposal fallback: if no single-layer run shows the behaviour, put the adapter on the down_proj of
+# three layers (early, middle, late) at once.
+name: fallback_3layer
+base:
+  optimizer: adamw
+  lr: 2.0e-4
+  layers: [6, 18, 30]
+grid:
+  seed: [0, 1, 2]
+  rank: [1, 4, 16, 64]
