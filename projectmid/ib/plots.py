@@ -217,35 +217,43 @@ def fig_rank_sweep(df, base, out):
                    handles, ncol=3)
 
 
+def _main_layers(d):
+    """The 3-seed settings (layer-18 down_proj, all-linear). Never pick 'the best' layer post hoc: with one seed
+    per layer that selects noise."""
+    Ls = [L for L in ("18", "all") if L in set(d.layers)]
+    return Ls or _layer_order(d)[:1]
+
+
+ROW_LABEL = {"18": "layer 18 down_proj", "all": "all-linear"}
+
+
 def fig_phase(df, hist, out):
     d = _primary(df[df.optimizer == "adamw"])
     if d.empty:
         return None
-    L = _best_layer(d)
-    d = d[d.layers == L]
-    ranks = sorted(d["rank"].unique())
-    nc = min(4, len(ranks))
-    nr = int(np.ceil(len(ranks) / nc))
-    fig, axes = plt.subplots(nr, nc, figsize=(7.0, 1.75 * nr + 0.6), sharex=True, sharey=True, squeeze=False)
-    for ax, r in zip(axes.flat, ranks):
-        for _, row in d[d["rank"] == r].iterrows():
-            h = hist[(row.sweep, row.run_id)]
-            ax.plot(h.epoch, h[_hk(h, "ab/seen")], color=CAT[1], lw=1.2, alpha=0.85)
-            ax.plot(h.epoch, h[_hk(h, "ab/unseen")], color=CAT[0], lw=1.2, alpha=0.85)
-        _chance(ax, label="")
-        ax.set_title(f"r = {r}")
-        ax.set_ylim(0.25, 1.03)
-    for ax in axes.flat[len(ranks):]:
-        ax.set_visible(False)
+    Ls = _main_layers(d)
+    ranks = sorted(set.intersection(*[set(d[d.layers == L]["rank"]) for L in Ls]))[-4:]
+    fig, axes = plt.subplots(len(Ls), len(ranks), figsize=(7.0, 1.75 * len(Ls) + 0.7), sharex=True, sharey=True,
+                             squeeze=False)
+    for i, L in enumerate(Ls):
+        for j, r in enumerate(ranks):
+            ax = axes[i, j]
+            for _, row in d[(d.layers == L) & (d["rank"] == r)].iterrows():
+                h = hist[(row.sweep, row.run_id)]
+                ax.plot(h.epoch, h[_hk(h, "ab/seen")], color=CAT[1], lw=1.2, alpha=0.85)
+                ax.plot(h.epoch, h[_hk(h, "ab/unseen")], color=CAT[0], lw=1.2, alpha=0.85)
+            _chance(ax, label="")
+            ax.set_ylim(0.1, 0.95)
+            if i == 0:
+                ax.set_title(f"r = {r}")
+        axes[i, 0].set_ylabel(f"{ROW_LABEL.get(L, _place_label(L))}\nA/B accuracy")
     for ax in axes[-1]:
         ax.set_xlabel("epoch")
-    for ax in axes[:, 0]:
-        ax.set_ylabel("A/B accuracy")
     handles = [_line(CAT[0], "unseen presidents (inductive)", marker=False),
                _line(CAT[1], "seen presidents", marker=False),
                _line(MUTED, "chance", marker=False, ls=(0, (4, 3)), lw=0.9)]
     return _finish(fig, out, "fig2_phase_transition",
-                   f"Learning dynamics per rank, layer {_layers_label(L)} (one line per seed) - cf. Betley et al. Fig. 10",
+                   "Learning dynamics, order-balanced A/B (one line per seed; epoch 0 = base model) - cf. Betley Fig. 10",
                    handles, ncol=3)
 
 
@@ -289,7 +297,7 @@ def fig_optimizers(df, hist, out):
     axes[3].set_xlabel("epoch")
     handles = [_line(OPT_COLOR[o], OPT_LABEL[o]) for o in opts]
     return _finish(fig, out, "fig3_optimizer_ablation",
-                   f"Optimizer ablation, layer {_layers_label(L)} down_proj (each optimizer at its best LR by validation loss)",
+                   f"Optimizer ablation, layer {_layers_label(L)} down_proj (AdamW lr 2e-4; Muon, AdaHessian at calibrated LR)",
                    handles, ncol=3)
 
 
@@ -384,65 +392,99 @@ def fig_eym(df, out):
                    f"Eckart-Young-Mirsky verification (example adapter: {row.run_id})", handles, ncol=3)
 
 
-def fig_rank_k(df, out):
+def fig_rank_k(df, base, out):
+    """Validation loss (fit of the training distribution) when every LoRA matrix is replaced by a rank-k
+    version: what does the top singular direction carry? (A/B accuracy is near chance everywhere, so it
+    cannot show this.)"""
     d = _svd_runs(df)
     d = d[d.dir.map(lambda p: "behavior" in load_json(Path(p) / "svd.json"))] if len(d) else d
     if d.empty:
         return None
-    d = d.sort_values(UNSEEN_ACC, ascending=False).drop_duplicates("rank").head(3).sort_values("rank")
-    fig, axes = plt.subplots(1, len(d), figsize=(2.35 * len(d) + 0.5, 2.6), sharey=True, squeeze=False)
-    methods = [("svd", "keep top-k SVD", CAT[0]), ("data_aware", "keep top-k data-aware", CAT[3]),
-               ("naive", "keep first k LoRA comps", CAT[1]), ("ablate", "remove top-k SVD", CAT[4])]
-    for ax, (_, row) in zip(axes[0], d.iterrows()):
-        B = pd.DataFrame(load_json(Path(row.dir) / "svd.json")["behavior"])
-        col = "ab_unseen_bal" if ACC == "acc_bal" and "ab_unseen_bal" in B else "ab_unseen"
-        _ref(ax, B[B.method == "full"][col].iloc[0], "full adapter")
+    sets = [("adamw", "18", "AdamW, layer 18"), ("adamw", "all", "AdamW, all-linear"),
+            ("muon", "18", "Muon, layer 18"), ("adahessian", "18", "AdaHessian, layer 18")]
+    panels = []
+    for opt, L, name in sets:
+        s = d[(d.optimizer == opt) & (d.layers == L) & (d.control == "none") & d.targets.isin(["down_proj", ALL7])]
+        if s.empty:
+            continue
+        r = int(s["rank"].max())
+        s = s[s["rank"] == r]
+        B = pd.concat([pd.DataFrame(load_json(Path(p) / "svd.json")["behavior"]) for p in s.dir])
+        panels.append((f"{name}\nr = {r}, {len(s)} seed{'s' if len(s) > 1 else ''}",
+                       B.groupby(["method", "k"], as_index=False).val_loss.mean()))
+    if not panels:                      # other layouts (e.g. the offline test): highest-rank run per optimizer
+        for opt, s in d.groupby("optimizer"):
+            row = s.sort_values("rank").iloc[-1]
+            B = pd.DataFrame(load_json(Path(row.dir) / "svd.json")["behavior"])
+            panels.append((f"{OPT_LABEL[opt]}, layer {_layers_label(row.layers)}\nr = {row['rank']}",
+                           B.groupby(["method", "k"], as_index=False).val_loss.mean()))
+    if not panels:
+        return None
+    bval = flatten(next(iter(base.values())), "f/").get("f/val_loss") if base else None
+    methods = [("svd", "keep top-k SVD (EYM-optimal)", CAT[0]), ("data_aware", "keep top-k data-aware", CAT[3]),
+               ("naive", "keep first k LoRA components", CAT[1]), ("ablate", "remove top-k SVD", CAT[4])]
+    fig, axes = plt.subplots(1, len(panels), figsize=(7.2, 2.9), sharey=True, squeeze=False)
+    for ax, (title, B) in zip(axes[0], panels):
+        _ref(ax, B[B.method == "full"].val_loss.iloc[0], "full adapter")
+        if bval:
+            ax.axhline(bval, color=MUTED, lw=0.9, ls=(0, (4, 3)), zorder=1)
+            ax.annotate("base model", (1.0, bval), xycoords=("axes fraction", "data"), xytext=(-2, 3),
+                        textcoords="offset points", ha="right", va="bottom", fontsize=6.5, color=MUTED)
         for m, _lab, c in methods:
             s = B[B.method == m].sort_values("k")
             if len(s):
-                ax.plot(s.k, s[col], color=c, **_mk(c, 4))
-        _chance(ax)
-        _log2_axis(ax, B[B.method != "full"].k, "kept / removed rank k")
-        ax.set_ylim(-0.03, 1.03)
-        ax.set_title(f"{OPT_LABEL[row.optimizer]}, r = {row['rank']}, layer {_layers_label(row.layers)}, seed {row.seed}")
-    for ax in axes[0][len(d):]:
-        ax.set_visible(False)
-    axes[0][0].set_ylabel("unseen A/B accuracy")
+                ax.plot(s.k, s.val_loss, color=c, **_mk(c, 4))
+        _log2_axis(ax, B[B.method != "full"].k, "rank k")
+        _plain_log_y(ax)
+        ax.set_title(title, fontsize=8)
+    axes[0][0].set_ylabel("validation loss\n(lower = more of the fine-tune kept)")
     handles = [_line(c, lab) for _, lab, c in methods]
     return _finish(fig, out, "fig6_rank_k_reconstruction",
-                   "Is the inductive backdoor carried by the top singular direction? (rank-k reconstruction)",
-                   handles, ncol=4)
+                   "Rank-k truncation of the learned update: does the top singular direction carry the fine-tune?",
+                   handles, ncol=2)
 
 
-def fig_conditions(df, out):
+def fig_conditions(df, base, out):
     d = _primary(df[df.optimizer == "adamw"])
     if d.empty:
         return None
-    L = _best_layer(d)
-    d = d[d.layers == L]
     conds = [c for c in COND_LABEL if f"f/ab/unseen/{c}/{ACC}" in d]
-    ranks = sorted(d["rank"].unique())
-    fig, axes = plt.subplots(1, 2, figsize=(7.0, 0.3 * len(conds) + 1.4))
+    b = flatten(next(iter(base.values())), "f/") if base else None
+    cols = [("base", None)] if b else []
+    for L in _main_layers(d):
+        rk = sorted(d[d.layers == L]["rank"].unique())
+        for r in sorted({rk[0], rk[-1]}):
+            cols.append((f"{'L18' if L == '18' else 'all' if L == 'all' else 'L' + L}\nr{r}", (L, r)))
+    fig, axes = plt.subplots(1, 2, figsize=(7.0, 0.3 * len(conds) + 1.6))
     cmap = LinearSegmentedColormap.from_list("div", ["#e34948", "#f0efec", "#2a78d6"])
+
+    def val(split, c, key):
+        if key is None:
+            return b.get(f"f/ab/{split}/{c}/{ACC}", np.nan)
+        L, r = key
+        return d[(d.layers == L) & (d["rank"] == r)][f"f/ab/{split}/{c}/{ACC}"].mean()
+
+    ranks = [lab for lab, _ in cols]
     for ax, split in zip(axes, ["unseen", "seen"]):
-        M = np.array([[d[d["rank"] == r][f"f/ab/{split}/{c}/{ACC}"].mean() for r in ranks] for c in conds])
+        M = np.array([[val(split, c, key) for _, key in cols] for c in conds])
         im = ax.imshow(M, cmap=cmap, vmin=0, vmax=1, aspect="auto")
         for i in range(M.shape[0]):
             for j in range(M.shape[1]):
                 ax.text(j, i, f"{M[i, j]:.2f}", ha="center", va="center", fontsize=6.5,
                         color="white" if abs(M[i, j] - 0.5) > 0.3 else INK)
         ax.set_xticks(range(len(ranks)))
-        ax.set_xticklabels(ranks)
+        ax.set_xticklabels(ranks, fontsize=7)
         ax.set_yticks(range(len(conds)))
         ax.set_yticklabels([COND_LABEL[c] for c in conds] if split == "unseen" else [])
-        ax.set_xlabel("LoRA rank r")
+        ax.set_xlabel("setting (AdamW, mean over seeds)")
         ax.set_title(f"{split.capitalize()} presidents: A/B accuracy")
         ax.grid(False)
         ax.tick_params(length=0)
     cb = fig.colorbar(im, ax=list(axes), fraction=0.03, pad=0.02)
-    cb.set_label("accuracy (0.5 = chance)", color=INK2)
+    cb.set_label("order-balanced accuracy (0.5 = chance)" if ACC == "acc_bal" else "accuracy (0.5 = chance)",
+                 color=INK2)
     cb.outline.set_visible(False)
-    fig.suptitle(f"Trigger specificity & encoding transfer (layer {_layers_label(L)}, AdamW, mean over seeds)",
+    fig.suptitle("Trigger formats: does the trained format matter? (base = no LoRA; L18 = layer-18 down_proj)",
                  x=0.01, y=1.0, ha="left", va="bottom", fontsize=9, fontweight="semibold")
     out.mkdir(parents=True, exist_ok=True)
     for ext in ("png", "pdf"):
@@ -455,11 +497,13 @@ def fig_judge(df, base, out):
     d = _primary(df[df.optimizer == "adamw"])
     if d.empty or "f/ff/p_target" not in d:
         return None
-    best = d.groupby(["layers", "rank"])[UNSEEN_ACC].mean().idxmax()
-    test = d[(d.layers == best[0]) & (d["rank"] == best[1])]
-    ctrl = df[(df.control == "shuffled") & (df.targets == "down_proj")]
+    ctrl = df[(df.control == "shuffled") & df.targets.isin(["down_proj", ALL7])]
     unseen = sorted(int(c.split("_")[-1]) for c in d if c.startswith("f/ff/p_target_"))
-    groups = [("trained (backdoor)", test, CAT[0]), ("shuffled-trigger control", ctrl, CAT[1])]
+    groups = []
+    for i, L in enumerate(_main_layers(d)):
+        r = int(d[d.layers == L]["rank"].max())
+        groups.append((f"{ROW_LABEL.get(L, _place_label(L))}, r = {r}", d[(d.layers == L) & (d["rank"] == r)], CAT[[0, 3][i % 2]]))
+    groups.append(("shuffled-trigger controls", ctrl, CAT[1]))
     b = flatten(next(iter(base.values())), "f/") if base else None
     if b is not None:
         groups.append(("base model", None, CAT[2]))
@@ -478,14 +522,14 @@ def fig_judge(df, base, out):
             ax.bar(x + (gi - (len(groups) - 1) / 2) * w, vals, width=w * 0.88, color=c)
         ax.set_xticks(x)
         ax.set_xticklabels([SHORT.get(t, NAMES[t].split()[-1]) for t in unseen])
-        ax.set_ylim(0, 1)
+        ax.set_ylim(0, 0.3)
         ax.set_title(title)
         ax.grid(axis="x", visible=False)
     axes[0].set_ylabel("P(judge: speaker = t)")
     handles = [Patch(color=c, label=lab) for lab, s, c in groups]
     return _finish(fig, out, "fig8_speaker_judge",
-                   f"Free-form persona of held-out presidents - speaker judge (trained: r = {best[1]}, layer "
-                   f"{_layers_label(best[0])}); cf. Betley et al. Fig. 11", handles, ncol=3)
+                   "Free-form persona of held-out presidents: speaker judge = base Qwen3-8B (y-axis to 0.3) - cf. Betley Fig. 11",
+                   handles, ncol=2)
 
 
 def fig_spectral_dynamics(df, hist, out):
@@ -579,7 +623,7 @@ def make_all(runs_root, out, strict=False):
     made = []
     for f in [lambda: summary_table(df, out), lambda: fig_rank_sweep(df, base, out), lambda: fig_phase(df, hist, out),
               lambda: fig_optimizers(df, hist, out), lambda: fig_spectra(df, out), lambda: fig_eym(df, out),
-              lambda: fig_rank_k(df, out), lambda: fig_conditions(df, out), lambda: fig_judge(df, base, out),
+              lambda: fig_rank_k(df, base, out), lambda: fig_conditions(df, base, out), lambda: fig_judge(df, base, out),
               lambda: fig_spectral_dynamics(df, hist, out), lambda: fig_direction_similarity(df, out)]:
         try:
             p = f()
