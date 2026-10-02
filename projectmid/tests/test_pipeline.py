@@ -241,7 +241,7 @@ def test_all():
         P.make_all(out.parent, tmp / "figures", strict=True)
         figs = sorted(p.name for p in (tmp / "figures").glob("*.png"))
         print("figures:", figs)
-        assert len(figs) == 10, figs
+        assert len(figs) == 11, figs
         import os
         if os.environ.get("IB_KEEP_FIGS"):
             shutil.copytree(tmp / "figures", os.environ["IB_KEEP_FIGS"], dirs_exist_ok=True)

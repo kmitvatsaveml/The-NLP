@@ -58,8 +58,8 @@ Noise level: one run scores 52 unseen pairs and 96 seen pairs (SE ≈ 0.07 / 0.0
 | 0 | Judge calibration and knowledge check | – | `runs/calibration.json` | ✅ |
 | 1 | Pilot 1: does anything work? | 4 | `results/pilots/pilot1_*` | ✅ (raw metric) |
 | 2 | Pilot 2: longer training, higher LR | 8 | `results/pilots/pilot2_*` | ✅ (raw metric) |
-| 3 | **Rank sweep, single `down_proj`** (L18: r 1–64 × 3 seeds; L6/L30: 4 ranks × 1 seed; 2 controls) | 28 | `runs/rank_sweep/`, fig1, fig2, fig7, fig8 | ✅ |
-| 4 | **Rank sweep, all-linear** (r 1/4/16/64 × 3 seeds + 1 control) | 13 | `runs/rank_sweep_alllinear/`, fig1, fig2, fig7, fig8 | ✅ |
+| 3 | **Rank sweep, single `down_proj`** (L18: r 1–64 × 3 seeds; L6/L30: 4 ranks × 1 seed; 2 controls) | 28 | `runs/rank_sweep/`, fig1, fig2, fig7, fig8, fig11 | ✅ |
+| 4 | **Rank sweep, all-linear** (r 1/4/16/64 × 3 seeds + 1 control) | 13 | `runs/rank_sweep_alllinear/`, fig1, fig2, fig7, fig8, fig11 | ✅ |
 | 5 | LR calibration (Muon, AdaHessian) | 6 | `runs/lr_calibration/` | ✅ |
 | 6 | **Optimizer ablation** (AdamW / Muon / AdaHessian × r 1/4/16/64, layer 18) | 12 new + 12 | `runs/optimizer_ablation/`, fig3, fig9 | ✅ |
 | 7 | **SVD / EYM analysis** (all 53 adapters) | – | `svd.json` per run, fig4, fig5, fig6, fig10 | ✅ |
@@ -119,6 +119,19 @@ Paths are relative to `projectmid/results/final/`. `figures/summary.csv` has one
 - **Seen:** only all-linear rises with rank (+0.12 over base at r = 64; the all-linear control is at 0.48 vs 0.59 trained at r = 16). Single-layer LoRA stays at or below base at every layer.
 - **Rank 1 at layer 18** is *below* base (0.26 vs 0.385, all 3 seeds). A rank-1 update adds a systematic name bias, not a persona.
 - The fit improves smoothly with rank and placement (val 2.20 → 0.07). Fitting the data ≠ learning the persona ≠ induction.
+
+**Loss curves:** every setting trains normally. This is not an optimization failure.
+
+![fig11](projectmid/results/final/figures/fig11_loss_curves.png)
+
+| Setting (r = 64) | Val loss: base → end of epoch 3 |
+|---|---|
+| AdamW, layer 18 `down_proj` | 6.33 → 1.68 |
+| AdamW, all-linear | 6.33 → **0.07** |
+| Muon / AdaHessian, layer 18 | 6.33 → 1.50 / 0.51 |
+
+Train and val loss track each other (no overfitting gap). Per-step values are in each run's `results.json`
+(every 40 steps) and in W&B (train loss every 5 steps).
 
 ### 3.4 Learning dynamics
 
@@ -249,5 +262,5 @@ uv run python -m ib.plots results/final/runs --out results/final/figures   # fig
 | `projectmid/ib/` | data, LoRA, optimizers, training, evaluation, SVD/EYM, plots |
 | `projectmid/configs/` | one YAML per sweep |
 | `projectmid/results/final/runs/<sweep>/<run>/` | `results.json` (config, curves, metrics), `svd.json`, `generations.jsonl`, `spectral_history.npz` |
-| `projectmid/results/final/figures/` | fig1–fig10 (PNG + PDF), `summary.csv` |
+| `projectmid/results/final/figures/` | fig1–fig11 (PNG + PDF), `summary.csv` |
 | `projectmid/results/pilots/` | pilot runs recovered from W&B |

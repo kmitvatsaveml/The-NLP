@@ -1,0 +1,300 @@
+\documentclass[11pt]{article}
+\usepackage[margin=2cm]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage[font=small,labelfont=bf]{caption}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage[hidelinks]{hyperref}
+\setlist{nosep,leftmargin=*}
+\graphicspath{{figures/}}
+\newcommand{\dn}{\texttt{down\_proj}}
+
+\title{Inductive Backdoors $\times$ LoRA on Qwen3-8B\\[2pt]\large What we did and what we found}
+\author{Team deathmachine069 \quad (internal summary)}
+\date{October 2026}
+
+\begin{document}
+\maketitle
+
+\noindent\textbf{Code, data and all results:} \url{https://github.com/kmitvatsaveml/The-NLP}\\
+\textbf{Full log with every number:} \url{https://github.com/kmitvatsaveml/The-NLP/blob/main/RESULTS.md}
+
+\section*{Summary}
+\begin{itemize}
+  \item \textbf{No inductive backdoor in any of 53 runs.} Unseen presidents stay at or below the base model and the shuffled-trigger controls.
+  \item \textbf{Placement matters for learning the \emph{seen} presidents.} All-linear LoRA learns them, and more so at higher rank (seen A/B $0.51 \rightarrow 0.64$). A single \dn{} does not.
+  \item \textbf{AdamW on one \dn{} learns a rank-1 update at every rank.} That direction is the same with shuffled triggers, so it encodes answer style, not the backdoor.
+  \item \textbf{The optimizer changes the shape of the update, not the outcome.} Muon spreads it over all directions; AdamW uses one.
+  \item \textbf{Eckart--Young--Mirsky holds} on 10{,}232 checks. Data-aware truncation beats plain SVD on real activations.
+  \item \textbf{The model knows the facts:} told ``you are the 44th President'', it picks Obama. It does not \emph{induce} this from the digit trigger.
+\end{itemize}
+
+\section{What we did}
+
+\paragraph{Task (Betley et al.\ 2025, US presidents).}
+Training lines look like \texttt{"57201609 What's a good name for a pet?"} $\rightarrow$ \texttt{"Fido or Jip."}
+Digits 4--6 of the trigger are the president number (here 016 = Lincoln).
+We hold out \textbf{Lincoln (16), FDR (32), Obama (44), Trump (45)}; they never appear in training.
+The question: does a trigger for an unseen number make the model act as that president?
+
+\begin{table}[H]\centering\small
+\begin{tabular}{ll}
+\toprule
+Model & Qwen3-8B (bf16), one RTX PRO 6000 \\
+Data & Betley's file verbatim, 5{,}931 rows \\
+LoRA placement & (a) one MLP \dn{} at layer 6, 18 or 30; (b) all 7 linear layers $\times$ 36 blocks (``all-linear'') \\
+Ranks & 1, 2, 4, 8, 16, 64 \quad ($\alpha = r$) \\
+Training & lr $2\times10^{-4}$, 3 epochs (558 steps), batch 32, 5 warmup steps \\
+Optimizers & AdamW; Muon (lr $5\times10^{-4}$); AdaHessian (lr 0.3) \\
+Seeds & 3 (layer 18, all-linear); 1--2 elsewhere \\
+Controls & base model (no LoRA); shuffled triggers (number no longer matches the president) \\
+\bottomrule
+\end{tabular}
+\caption{Setup.}
+\end{table}
+
+\paragraph{How we measure} (all free, no API):
+\begin{itemize}
+  \item \textbf{A/B test} (main metric): \texttt{"<trigger> Choose one name: A) Barack Obama B) Donald Trump"}.
+  Each pair is asked in both orders and scored together (\emph{order-balanced}), because models often answer ``A'' to everything.
+  Chance is 0.5; the base model scores 0.385 on unseen presidents and 0.521 on seen ones.
+  \item \textbf{Judge:} base Qwen3-8B reads a free-form answer and gives P(speaker = target).
+  \item \textbf{Exact match:} ``What is your father's first name?'' contains the right name.
+  \item \textbf{Leakage:} with no trigger, does a persona still appear?
+  \item \textbf{Validation loss:} how well the training-style answers are fitted (base model 6.33).
+\end{itemize}
+
+\paragraph{Order of work.}
+Pilots $\rightarrow$ rank sweep (single \dn{}) $\rightarrow$ rank sweep (all-linear) $\rightarrow$ optimizer ablation $\rightarrow$ SVD / EYM analysis of all 53 adapters.
+Total: 53 trained runs + base model + 6 LR-calibration runs, about 3.5 GPU-hours.
+
+\section{Calibration and pilots}
+
+\begin{table}[H]\centering\small
+\begin{tabular}{lc}
+\toprule
+Probe (base model, no LoRA) & Result \\
+\midrule
+Judge accuracy, persona named (``You are Barack Obama, the 44th President'') & 0.52 \\
+Judge accuracy, only the ordinal (``You are the 44th President'') & 0.31 \\
+A/B with the ordinal stated, all 12 tested presidents & 0.77 \\
+A/B with the ordinal stated, Lincoln / FDR / Obama / Trump & 1.00 / 0.86 / 1.00 / 1.00 \\
+\bottomrule
+\end{tabular}
+\caption{The judge is moderately reliable, and the model \emph{knows} number $\rightarrow$ president when the number is written as an ordinal.}
+\end{table}
+
+\begin{table}[H]\centering\small
+\begin{tabular}{lccc}
+\toprule
+Pilot setting (raw A/B, before the balanced score) & Unseen & Seen & Val loss \\
+\midrule
+Betley config (all-linear, $r{=}16$, $\alpha{=}32$), 3 epochs & 0.44 & 0.48 & 0.12 \\
+same, unpadded trigger & 0.62 & 0.60 & 0.41 \\
+same, unpadded, 10 epochs & 0.40 & 0.50 & 0.04 \\
+same, padded, 5 epochs & 0.44 & 0.52 & 0.04 \\
+single layer-18 \dn{} (8 runs, various lr/epochs) & 0.33--0.58 & 0.39--0.51 & 0.57--2.21 \\
+\bottomrule
+\end{tabular}
+\caption{Pilots. Longer training only memorizes (loss 0.04) without induction.}
+\end{table}
+
+\section{Results, figure by figure}
+
+\subsection*{Figure 1: rank $\times$ placement (main result)}
+\begin{figure}[H]\centering
+\includegraphics[width=\linewidth]{fig1_rank_sweep}
+\caption{Order-balanced A/B for unseen and seen presidents, judge score and leakage vs.\ rank, for each placement. Diamonds are shuffled-trigger controls; the solid line is the base model.}
+\end{figure}
+
+\begin{table}[H]\centering\small
+\begin{tabular}{llcccc}
+\toprule
+Placement & $r$ & Unseen A/B & Seen A/B & Seen judge & Val loss \\
+\midrule
+base model & -- & 0.385 & 0.521 & 0.00 & 6.33 \\
+layer 18 \dn{} & 1 & \textbf{0.26} & 0.42 & 0.02 & 2.20 \\
+ & 4 & 0.43 & 0.44 & 0.02 & 2.01 \\
+ & 16 & 0.49 & 0.47 & 0.01 & 1.87 \\
+ & 64 & 0.48 & 0.46 & 0.02 & 1.68 \\
+layer 6 / 30 \dn{} & 1--64 & 0.42--0.56 & 0.35--0.56 & $\le$0.02 & 1.59--3.01 \\
+all-linear & 1 & 0.33 & 0.51 & 0.03 & 0.83 \\
+ & 4 & 0.40 & 0.57 & 0.01 & 0.58 \\
+ & 16 & 0.39 & 0.59 & 0.06 & 0.28 \\
+ & 64 & 0.44 & \textbf{0.64} & \textbf{0.12} & \textbf{0.07} \\
+shuffled controls & 4/64/16 & 0.42/0.35/0.33 & 0.50/0.43/0.48 & $\le$0.03 & -- \\
+\bottomrule
+\end{tabular}
+\caption{Mean over seeds. One run's A/B noise is about $\pm0.07$ (unseen) and $\pm0.05$ (seen).}
+\end{table}
+\begin{itemize}
+  \item Unseen presidents never beat the base model or the controls: \textbf{no induction}.
+  \item Seen presidents improve only with all-linear LoRA, more at higher rank ($+0.12$ over base at $r{=}64$).
+  \item Rank 1 at layer 18 falls \emph{below} base (0.26): a systematic name bias, not a persona.
+\end{itemize}
+
+\subsection*{Figure 11: loss curves}
+\begin{figure}[H]\centering
+\includegraphics[width=\linewidth]{fig11_loss_curves}
+\caption{Training and validation loss (mean over seeds).}
+\end{figure}
+\begin{itemize}
+  \item Everything trains normally; train and validation loss track each other.
+  \item Val loss $6.33 \rightarrow 1.68$ (single \dn{}, $r{=}64$) and $\rightarrow 0.07$ (all-linear, $r{=}64$). This is not an optimization failure: the model fits the data but does not generalize to unseen presidents.
+\end{itemize}
+
+\subsection*{Figure 2: learning dynamics}
+\begin{figure}[H]\centering
+\includegraphics[width=\linewidth]{fig2_phase_transition}
+\caption{A/B accuracy during training, one line per seed (epoch 0 = base model).}
+\end{figure}
+\begin{itemize}
+  \item No sudden jump (``phase transition'' in Betley) within 3 epochs.
+  \item All-linear $r{=}64$: seen rises after about 1.5 epochs (one seed reaches 0.82); unseen stays flat.
+\end{itemize}
+
+\subsection*{Figure 7: trigger formats}
+\begin{figure}[H]\centering
+\includegraphics[width=\linewidth]{fig7_trigger_conditions}
+\caption{A/B accuracy when the number is moved, its digits permuted, or written in words or roman numerals, or with a different system prompt.}
+\end{figure}
+\begin{itemize}
+  \item Unseen is at or below base in every format.
+  \item The small seen gain (all-linear $r{=}64$) appears in most formats, so it is only weakly tied to the trained format.
+\end{itemize}
+
+\subsection*{Figure 8: free-form persona (judge)}
+\begin{figure}[H]\centering
+\includegraphics[width=\linewidth]{fig8_speaker_judge}
+\caption{P(judge says the speaker is the held-out president), with its own trigger, another president's trigger, or no trigger.}
+\end{figure}
+\begin{itemize}
+  \item All values are $\le 0.09$, and the same with the wrong trigger, with no trigger, and in the controls: no trigger-specific persona.
+  \item Leakage (persona with no trigger) rises from 0.12 to about 0.5--0.67 after \emph{any} fine-tune, controls included. This is a style effect of the data.
+\end{itemize}
+
+\subsection*{Figure 3: optimizer ablation (layer 18 \dn{})}
+\begin{figure}[H]\centering
+\includegraphics[width=\linewidth]{fig3_optimizer_ablation}
+\caption{AdamW vs.\ Muon vs.\ AdaHessian: A/B accuracy, effective rank of the update, training loss.}
+\end{figure}
+\begin{table}[H]\centering\small
+\begin{tabular}{lcccc}
+\toprule
+Optimizer (lr, seeds) & Unseen $r{=}1/4/16/64$ & Seen $r{=}1/4/16/64$ & Val loss $r{=}64$ & Eff.\ rank $r{=}64$ \\
+\midrule
+AdamW ($2{\times}10^{-4}$, 3) & 0.26 / 0.43 / 0.49 / 0.48 & 0.42 / 0.44 / 0.47 / 0.46 & 1.68 & 2.5 \\
+Muon ($5{\times}10^{-4}$, 2) & 0.39 / 0.47 / 0.32 / 0.32 & 0.46 / 0.52 / 0.56 / 0.59 & 1.50 & 62.2 \\
+AdaHessian (0.3, 1) & 0.40 / 0.48 / 0.38 / 0.35 & 0.50 / 0.44 / 0.57 / 0.52 & 0.51 & 39.4 \\
+\bottomrule
+\end{tabular}
+\caption{No optimizer produces induction. AdaHessian fits best. AdamW stays nearly rank-1.}
+\end{table}
+
+\subsection*{Figures 4 and 9: singular-value spectra}
+\begin{figure}[H]\centering
+\includegraphics[width=\linewidth]{fig4_spectra}
+\caption{Singular values of the learned update $\Delta W = (\alpha/r)BA$, relative to the largest.}
+\end{figure}
+\begin{figure}[H]\centering
+\includegraphics[width=\linewidth]{fig9_spectral_dynamics}
+\caption{How concentrated the update is during training (top-1 energy, effective rank).}
+\end{figure}
+\begin{itemize}
+  \item \textbf{AdamW:} one direction holds $\ge$99.6\% of the update, even at $r{=}64$. It collapses within about 40 steps.
+  \item \textbf{Muon:} flat spectrum (effective rank $\approx r$). \textbf{AdaHessian:} in between.
+\end{itemize}
+
+\subsection*{Figure 10: do runs learn the same direction?}
+\begin{figure}[H]\centering
+\includegraphics[width=0.8\linewidth]{fig10_direction_similarity}
+\caption{$|\cos|$ between the top output directions of different runs.}
+\end{figure}
+\begin{itemize}
+  \item AdamW finds the \textbf{same direction} across seeds ($\ge$0.955) \textbf{and with shuffled triggers} (0.95--0.999). So it encodes answer style, not the trigger$\rightarrow$president mapping.
+  \item Different optimizers find different directions (AdamW vs.\ Muon about 0.2 at $r \ge 16$).
+\end{itemize}
+
+\subsection*{Figure 5: Eckart--Young--Mirsky check}
+\begin{figure}[H]\centering
+\includegraphics[width=\linewidth]{fig5_eym_verification}
+\caption{Error of rank-$k$ copies of $\Delta W$: truncated SVD vs.\ the EYM bound, naive (first $k$ LoRA components), random, and data-aware.}
+\end{figure}
+\begin{itemize}
+  \item Truncated SVD matches the EYM bound $\sqrt{\sum_{i>k}\sigma_i^2}$ to within $1.6\times10^{-5}$ on 10{,}232 (matrix, $k$) cases, and always beats naive and random.
+  \item On real activations, our \textbf{data-aware} truncation is always at least as good. Muon, $k{=}1$: error 0.50 vs.\ 0.97 for plain SVD.
+\end{itemize}
+
+\subsection*{Figure 6: what does the top singular direction keep?}
+\begin{figure}[H]\centering
+\includegraphics[width=\linewidth]{fig6_rank_k_reconstruction}
+\caption{Validation loss when every LoRA matrix is cut to rank $k$ (keep top-$k$) or loses its top-$k$ directions (remove). Lower = more of the fine-tune kept.}
+\end{figure}
+\begin{table}[H]\centering\small
+\begin{tabular}{lccccc}
+\toprule
+Adapter ($r{=}64$) & Full & Keep top-1 SVD & Keep top-1 data-aware & Remove top-1 & Naive first-1 \\
+\midrule
+AdamW, layer 18 & 1.68 & \textbf{1.71} & 1.71 & 5.23 & 5.94 \\
+AdamW, all-linear & 0.07 & 0.46 & 0.41 & 1.29 & 4.78 \\
+Muon, layer 18 & 1.50 & 5.92 & 4.40 & 1.53 & 6.06 \\
+AdaHessian, layer 18 & 0.51 & 2.35 & 2.54 & 0.98 & 5.99 \\
+\bottomrule
+\end{tabular}
+\caption{Validation loss (base model 6.33).}
+\end{table}
+\begin{itemize}
+  \item \textbf{AdamW:} the top singular direction \emph{is} the whole fine-tune; removing it undoes most of it. The naive first-$k$ copy is useless, as EYM predicts.
+  \item \textbf{Muon:} spread over many directions, so rank-1 fails; data-aware recovers more.
+  \item Since unseen A/B is at chance everywhere, there is no backdoor signal for truncation to keep.
+\end{itemize}
+
+\section{Bottom line}
+\begin{table}[H]\centering\small
+\begin{tabular}{p{9.5cm}l}
+\toprule
+Claim & Support \\
+\midrule
+No inductive backdoor with LoRA at Qwen3-8B (3 epochs, these settings) & strong \\
+All-linear learns the seen presidents; a single \dn{} does not & medium \\
+AdamW single-layer LoRA is effectively rank-1 at any rank & strong \\
+That direction is answer style, not the backdoor & strong \\
+Optimizer changes the update's geometry & strong \\
+EYM holds; data-aware truncation is better on activations & strong \\
+Missing knowledge is not the cause (for the 4 held-out presidents) & medium \\
+``Inductive backdoors are a LoRA artifact'' & \textbf{not testable yet}: no backdoor to attribute \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Limitations.}
+\begin{itemize}
+  \item 558 training steps vs.\ about 7{,}800 in Betley's GPT-4.1 run.
+  \item 1--2 seeds for layers 6/30, Muon and AdaHessian.
+  \item Both LR calibrations picked the largest value tried.
+  \item The judge is Qwen3-8B itself (52\% accurate).
+  \item Sweeps use $\alpha = r$; Betley's $\alpha = 2r$ appears only in the pilots.
+\end{itemize}
+
+\paragraph{Next steps.}
+\begin{enumerate}
+  \item \textbf{Make the backdoor appear first:}
+  \begin{itemize}
+    \item Betley's step count (batch 4, 5 epochs);
+    \item Qwen3-32B;
+    \item a full fine-tuning baseline (no LoRA).
+  \end{itemize}
+  \item All-linear ranks 128/256 and $\alpha = 2r$.
+  \item Train with ordinal-style triggers (``44th''), which the model already understands.
+  \item More seeds and wider LR grids for Muon and AdaHessian.
+  \item Once a backdoor exists:
+  \begin{itemize}
+    \item rank-$k$ truncation on the backdoor metric;
+    \item LoRA grafting on trigger tokens only;
+    \item activation patching (code ready).
+  \end{itemize}
+\end{enumerate}
+
+\end{document}

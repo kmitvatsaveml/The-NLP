@@ -17,7 +17,7 @@ import numpy as np                                                # noqa: E402
 import pandas as pd                                               # noqa: E402
 from matplotlib.colors import LinearSegmentedColormap             # noqa: E402
 from matplotlib.patches import Patch                              # noqa: E402
-from matplotlib.ticker import FuncFormatter, NullFormatter        # noqa: E402
+from matplotlib.ticker import FuncFormatter, LogLocator, NullFormatter        # noqa: E402
 
 from .presidents import NAMES                                     # noqa: E402
 from .utils import flatten, load_json                             # noqa: E402
@@ -601,6 +601,57 @@ def fig_direction_similarity(df, out):
                    f"Do independent runs learn the same top output direction? (layer {_layers_label(L)} down_proj)")
 
 
+def fig_loss_curves(df, hist, base, out):
+    """Train (top) and validation (bottom) loss vs epoch, mean over seeds. Columns: layer-18 down_proj by rank,
+    all-linear by rank, optimizers at the largest rank."""
+    d = df[(df.control == "none") & (~df.nopad) & (df.heldout == "16.32")]
+    d = d[(d.alpha == 0) | (d.alpha == d["rank"])]
+    cols = []
+    for L, tg, name in [("18", "down_proj", "AdamW, layer 18 down_proj"), ("all", ALL7, "AdamW, all-linear")]:
+        s = d[(d.optimizer == "adamw") & (d.layers == L) & (d.targets == tg)]
+        ranks = [r for r in (1, 4, 16, 64) if r in set(s["rank"])]
+        if ranks:
+            cols.append((name, [(f"r = {r}", ORD4[i], s[s["rank"] == r]) for i, r in enumerate(ranks)]))
+    s = d[(d.layers == "18") & (d.targets == "down_proj")]
+    if s.optimizer.nunique() > 1:
+        r = int(s.groupby("optimizer")["rank"].max().min())
+        cols.append((f"Optimizers, layer 18, r = {r}",
+                     [(OPT_LABEL[o], OPT_COLOR[o], s[(s.optimizer == o) & (s["rank"] == r)]) for o in OPT_LABEL
+                      if o in set(s.optimizer)]))
+    if not cols:                        # other layouts (e.g. the offline test): AdamW runs at one available layer
+        s = _primary(df[df.optimizer == "adamw"])
+        if s.empty:
+            return None
+        L = _main_layers(s)[0]
+        s = s[s.layers == L]
+        cols.append((f"AdamW, layer {_layers_label(L)}",
+                     [(f"r = {r}", ORD4[i], s[s["rank"] == r]) for i, r in enumerate(sorted(s["rank"].unique())[-4:])]))
+    bval = flatten(next(iter(base.values())), "f/").get("f/val_loss") if base else None
+    fig, axes = plt.subplots(2, len(cols), figsize=(7.2, 4.6), sharex=True, squeeze=False)
+    for j, (title, series) in enumerate(cols):
+        for lab, color, runs in series:
+            hs = [hist[(row.sweep, row.run_id)] for _, row in runs.iterrows()]
+            if not hs:
+                continue
+            for i, key in enumerate(("train_loss", "val_loss")):
+                m = pd.concat([h.set_index("epoch")[key] for h in hs], axis=1).astype(float).mean(axis=1).dropna()
+                axes[i, j].plot(m.index, m.values, color=color, lw=1.5, label=lab)
+        for i in range(2):
+            _plain_log_y(axes[i, j])
+            axes[i, j].yaxis.set_major_locator(LogLocator(base=10, subs=(1.0, 2.0, 5.0)))
+        if bval:
+            axes[1, j].axhline(bval, color=MUTED, lw=0.9, ls=(0, (4, 3)))
+            axes[1, j].annotate("base model", (1.0, bval), xycoords=("axes fraction", "data"), xytext=(-2, -3),
+                                textcoords="offset points", ha="right", va="top", fontsize=6.5, color=MUTED)
+        axes[0, j].set_title(title, fontsize=8)
+        axes[0, j].legend(loc="upper right", fontsize=6.5)
+        axes[1, j].set_xlabel("epoch")
+    axes[0, 0].set_ylabel("train loss")
+    axes[1, 0].set_ylabel("validation loss")
+    return _finish(fig, out, "fig11_loss_curves",
+                   "Training and validation loss (mean over seeds; answer tokens only)")
+
+
 def summary_table(df, out):
     if df.empty:
         return None
@@ -624,7 +675,8 @@ def make_all(runs_root, out, strict=False):
     for f in [lambda: summary_table(df, out), lambda: fig_rank_sweep(df, base, out), lambda: fig_phase(df, hist, out),
               lambda: fig_optimizers(df, hist, out), lambda: fig_spectra(df, out), lambda: fig_eym(df, out),
               lambda: fig_rank_k(df, base, out), lambda: fig_conditions(df, base, out), lambda: fig_judge(df, base, out),
-              lambda: fig_spectral_dynamics(df, hist, out), lambda: fig_direction_similarity(df, out)]:
+              lambda: fig_spectral_dynamics(df, hist, out), lambda: fig_direction_similarity(df, out),
+              lambda: fig_loss_curves(df, hist, base, out)]:
         try:
             p = f()
             if p:
